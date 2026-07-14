@@ -1,0 +1,25 @@
+{
+  "proposal_id": "prop_98765",
+  "status": "INTERVIEW_IN_PROGRESS",
+  "author_id": "usr_alpha",
+  "contributors": ["usr_alpha", "usr_beta"],
+  "raw_spark": "Add user-defined tagging to project issues.",
+  "interview_history": [
+    {
+      "speaker": "bot",
+      "text": "How should these tags be scoped? Globally across the organization or strictly per-project?"
+    },
+    {
+      "speaker": "usr_alpha",
+      "text": "Per-project by default, but admins should be able to promote them."
+    },
+    {
+      "speaker": "usr_beta",
+      "text": "Agreed, we also need to make sure tags can have custom hex colors."
+    }
+  ],
+  "missing_gaps_identified": [
+    "Database schema changes for tag colors",
+    "Permission levels required to promote tags"
+  ]
+}

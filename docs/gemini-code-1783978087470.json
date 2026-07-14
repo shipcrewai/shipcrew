@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_98765",
+  "current_gate": "GATE_1_PRODUCT_RFC",
+  "requirements_doc_url": "[https://github.com/covenant-gov/proposals/blob/main/prop_98765.md](https://github.com/covenant-gov/proposals/blob/main/prop_98765.md)",
+  "voting_metrics": {
+    "votes_for": 7,
+    "votes_against": 1,
+    "required_quorum": 5,
+    "status": "PENDING"
+  },
+  "rfc_comments": [
+    {
+      "comment_id": "c_001",
+      "user_id": "usr_gamma",
+      "timestamp": "2026-07-13T20:45:00Z",
+      "body": "Should we limit the maximum number of tags per project to prevent clutter?",
+      "resolved": false
+    }
+  ],
+  "scheduling_target": {
+    "auto_calculated_milestone": "v2.4-Sprint3",
+    "source_system": "github_projects_v2"
+  }
+}
