@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "shipply",
+  "project_id": "a4bfbe52-fc5f-4c59-ad29-fab7fbb9d987"
+}
