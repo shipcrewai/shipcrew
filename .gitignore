@@ -4,3 +4,24 @@
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# Deployment-specific configuration and secrets
+shipply.toml
+secrets/github-token.txt
+
+# Python generated artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+.eggs/
+
+# Runtime data
+data/

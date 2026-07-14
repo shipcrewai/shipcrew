@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1",
+  "bot_file": "shipply_blueprint.py",
+  "registration": true,
+  "shutdown": true,
+  "contract_pieces": [
+    {
+      "name": "plan_reply",
+      "type": "event_response",
+      "timeout_seconds": 5,
+      "inject_event": {
+        "bot_id": "shipply-blueprint",
+        "event_id": "plan-0001",
+        "type": "dm_received",
+        "chat_id": null,
+        "content": "/plan",
+        "rumor_id": "rumor-plan-0001",
+        "author": "npub1sender",
+        "timestamp": 1700000000000
+      },
+      "expect_response": {
+        "event_id": "plan-0001",
+        "action": "reply"
+      }
+    }
+  ]
+}

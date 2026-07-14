@@ -1,0 +1,16 @@
+[Unit]
+Description=Pacto bot shipply-doc-review
+After=network.target
+
+[Service]
+Type=simple
+User=pacto-bot
+Group=pacto-bot
+WorkingDirectory=/opt/shipply-doc-review
+ExecStart=/usr/local/bin/python3 -m shipply_doc_review
+Restart=on-failure
+Environment="PACTO_TRANSPORT=unix"
+Environment="PACTO_SOCKET_PATH=/run/pacto-bot-api.sock"
+
+[Install]
+WantedBy=multi-user.target

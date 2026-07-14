@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.venv
+venv
+.pytest_cache
+
+# Beads / Dolt
+.dolt
+.beads
+*.db
+.beads-credential-key
+
+# Local data and secrets
+data/
+secrets/
+shipply.toml
+
+# Docs and tests (not needed at runtime)
+docs/
+tests/
+AGENTS.md
+CLAUDe.md

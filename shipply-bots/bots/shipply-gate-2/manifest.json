@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1",
+  "bot_file": "shipply_gate_2.py",
+  "registration": true,
+  "shutdown": true,
+  "contract_pieces": [
+    {
+      "name": "authorize_reply",
+      "type": "event_response",
+      "timeout_seconds": 5,
+      "inject_event": {
+        "bot_id": "shipply-gate-2",
+        "event_id": "authorize-0001",
+        "type": "dm_received",
+        "chat_id": null,
+        "content": "/authorize",
+        "rumor_id": "rumor-authorize-0001",
+        "author": "npub1sender",
+        "timestamp": 1700000000000
+      },
+      "expect_response": {
+        "event_id": "authorize-0001",
+        "action": "reply"
+      }
+    }
+  ]
+}

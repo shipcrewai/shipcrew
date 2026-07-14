@@ -1,0 +1,225 @@
+name: shipply
+
+services:
+  
+  dolt-server:
+    image: dolthub/dolt-sql-server:latest
+    environment:
+      DOLT_DATABASE: shipply_beads
+      DOLT_USER: shipply
+      DOLT_PASSWORD: shipply
+      DOLT_ROOT_PASSWORD: shipply-root
+    volumes:
+      - dolt-data:/var/lib/dolt
+      - ./scripts/dolt-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c 'exec 3<> /dev/tcp/localhost/3306'
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: on-failure
+
+  init-dolt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/scripts/init-dolt.sh"]
+    environment:
+      DOLT_HOST: dolt-server
+      DOLT_PORT: "3306"
+      DOLT_USER: shipply
+      DOLT_PASSWORD: shipply
+      DOLT_DB: shipply_beads
+      BEADS_DOLT_PASSWORD: shipply
+      BD_NON_INTERACTIVE: "1"
+      BEADS_ACTOR: shipply-forge
+    volumes:
+      - beads-data:/app/.beads
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    depends_on:
+      dolt-server:
+        condition: service_healthy
+    restart: on-failure
+
+  scout:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      PACTO_SECRET_TOKEN: ${PACTO_SECRET_TOKEN:-}
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    command: ["python", "-m", "shipply.handlers.scout"]
+    restart: on-failure
+
+  doc-review:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    command: ["python", "-m", "shipply.handlers.doc_review"]
+    restart: on-failure
+
+  blueprint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - beads-data:/app/.beads
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+
+    networks:
+      - pacto
+    depends_on:
+      init-dolt:
+        condition: service_completed_successfully
+    command: ["python", "-m", "shipply.handlers.blueprint"]
+    restart: on-failure
+
+  forge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/scripts/entrypoint-gh.sh"]
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      GITHUB_TOKEN_FILE: /run/secrets/github-token
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - beads-data:/app/.beads
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    secrets:
+      - github-token
+    depends_on:
+      init-dolt:
+        condition: service_completed_successfully
+    command: ["python", "-m", "shipply.handlers.forge"]
+    restart: on-failure
+
+  gate1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - beads-data:/app/.beads
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    depends_on:
+      init-dolt:
+        condition: service_completed_successfully
+    command: ["python", "-m", "shipply.handlers.gate1"]
+    restart: on-failure
+
+  gate2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - beads-data:/app/.beads
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    command: ["python", "-m", "shipply.handlers.gate2"]
+    restart: on-failure
+
+  gate3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/scripts/entrypoint-gh.sh"]
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      GITHUB_TOKEN_FILE: /run/secrets/github-token
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - shipply-data:/app/data
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    secrets:
+      - github-token
+    networks:
+      - pacto
+    command: ["python", "-m", "shipply.handlers.gate3"]
+    restart: on-failure
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+    volumes:
+      - shipply-data:/app/data
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    ports:
+      - "${SHIPPLY_METRICS_PORT:-9090}:9090"
+    command: ["python", "-m", "shipply.dashboard"]
+    restart: on-failure  
+
+secrets:
+  github-token:
+    file: ./secrets/github-token.txt
+
+networks:
+  pacto:
+    external: true
+
+volumes:
+  pacto-data:
+  shipply-data:
+  beads-data:
+  dolt-data:
+  pacto-bot-api-data:
+    external: true
+    name: pacto-bot-api-data
+

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Shipply Blueprint Output",
+  "description": "Technical blueprint produced by the Blueprint handler before Gate 2 authorization.  The formula TOML, JSON plan graph, or harness-raw JSON representation must carry these fields.",
+  "type": "object",
+  "required": ["bead_specs", "file_deltas", "dependencies", "step_ordering"],
+  "properties": {
+    "bead_specs": {
+      "type": "array",
+      "description": "Beads to be executed during FORGE",
+      "items": { "type": "object" }
+    },
+    "file_deltas": {
+      "type": "array",
+      "description": "Files created, modified, or removed by the proposal",
+      "items": { "type": "object" }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Declared dependencies (target areas, components, bead IDs)",
+      "items": { "type": "object" }
+    },
+    "step_ordering": {
+      "type": "array",
+      "description": "Ordered list of step identifiers",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

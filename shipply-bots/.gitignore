@@ -1,0 +1,22 @@
+# Pacto bot daemon configuration contains secrets (nsec, tokens, etc.)
+pacto-bot-api.toml
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+.venv/
+venv/
+
+# Local runtime data and logs
+/data
+*.log
+.pacto/
+.agents/
+.env*
+!.env.example
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/

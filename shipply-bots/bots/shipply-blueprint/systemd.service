@@ -1,0 +1,16 @@
+[Unit]
+Description=Pacto bot shipply-blueprint
+After=network.target
+
+[Service]
+Type=simple
+User=pacto-bot
+Group=pacto-bot
+WorkingDirectory=/opt/shipply-blueprint
+ExecStart=/usr/local/bin/python3 -m shipply_blueprint
+Restart=on-failure
+Environment="PACTO_TRANSPORT=unix"
+Environment="PACTO_SOCKET_PATH=/run/pacto-bot-api.sock"
+
+[Install]
+WantedBy=multi-user.target

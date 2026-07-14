@@ -161,7 +161,7 @@ To preserve architectural control and guard software quality without introducing
 ### 🚀 GATE 3: Code Governance & Automated Alerting
 
 - **Self-Healing Failure Escape:** If Forge exhausts its 2 automated self-healing retries on a code task without passing tests, it stops work on that specific bead. It formats a structural notification using `pacto-bot-api` and pushes it directly into the Gate 2 technical room thread. This diagnostic card contains the failure log, the breaking code diff, and a clear request for manual human engineering steering.
-- **The Code Gate:** All successfully compiled code components are grouped into parallel Pull Requests on GitHub for a standard human peer review before final integration.
+- **The Code Gate:** All successfully executed code for a proposal is grouped into a single Pull Request on GitHub for standard human peer review before final integration.
 
 
 **Example — Forge Failure Alert (`docs/gemini-code-1783978089843.json`):**

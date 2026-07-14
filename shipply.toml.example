@@ -1,0 +1,45 @@
+# Shipply orchestration engine configuration.
+# Copy this file to shipply.toml and adjust values for your deployment.
+#
+# Docker Compose notes:
+# - The handler image sets WORKDIR to /app and the compose file mounts a
+#   shared volume at /app/data, so the relative database path below resolves
+#   to /app/data/proposals.db inside containers.
+# - Forge and Gate 3 read a GitHub token from /run/secrets/github-token
+#   (supplied via Docker secret in compose). The token needs repo:read scope
+#   on the target repositories. A fine-grained PAT or GitHub App installation
+#   token is preferred over a classic PAT.
+
+[personas]
+scout = { model = "fast" }
+doc-review = { model = "default" }
+blueprint = { model = "slow" }
+forge = { model = "default" }
+gate-1 = { model = "default" }
+gate-2 = { model = "default" }
+gate-3 = { model = "default" }
+
+[gates.gate-1]
+quorum = 3
+threshold = 0.66
+
+[gates.gate-2]
+quorum = 2
+threshold = 0.75
+
+[gates.gate-3]
+quorum = 2
+threshold = 0.75
+
+[squads]
+gate-1 = "shipply-product-rfc"
+gate-2 = "shipply-maintainers"
+gate-3 = "shipply-maintainers"
+
+[database]
+# In Docker this resolves to /app/data/proposals.db because WORKDIR is /app.
+path = "data/proposals.db"
+
+[observability]
+log_level = "INFO"
+metrics_port = 9090
