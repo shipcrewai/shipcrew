@@ -26,4 +26,6 @@ shipply.toml
 docs/
 tests/
 AGENTS.md
-CLAUDe.md
+CLAUDE.md
+shipply-bots/
+.github

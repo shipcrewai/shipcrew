@@ -5,71 +5,89 @@
 # and the external tools they invoke (omp, gh, bd).
 FROM python:3.14-slim
 
-# Pin: Oh My Pi (omp) binary from the pacto-bot-api v0.7.0 linux amd64 release.
-# Source URL: https://github.com/covenant-gov/pacto-bot-api/releases/download/v0.7.0/pacto-bot-api_0.7.0_linux_amd64.tar.gz
-# Platform: linux amd64.
-ARG OMP_VERSION=0.7.0
-ARG OMP_URL=https://github.com/covenant-gov/pacto-bot-api/releases/download/v${OMP_VERSION}/pacto-bot-api_${OMP_VERSION}_linux_amd64.tar.gz
+# Create a non-root user for runtime.
+RUN useradd -m -s /bin/bash botuser
 
-# Install build/runtime dependencies.
+# Install system dependencies and tools available via apt (requires root).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
         gnupg \
         tar \
-    && rm -rf /var/lib/apt/lists/*
+        build-essential \
+        cmake \
+        clang \
+        lld \
+        libclang-dev \
+        procps \
+        #wget \
+        jq \
+        pkg-config \
+        #socat \
+        #mkcert \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives /tmp/* /var/tmp/*
 
-# Download and install the omp binary.
-# The tarball is expected to contain either an `omp` binary or a
-# `pacto-bot-api` binary; the latter is installed as `omp` for compatibility.
+# Install tools that only ship as release binaries (requires root).
+ARG GH_VERSION=2.96.0
+#ARG WEBSOCAT_VERSION=1.14.1
 RUN set -eux; \
-    curl -fsSL -o /tmp/omp.tar.gz "${OMP_URL}"; \
-    mkdir -p /tmp/omp; \
-    tar -xzf /tmp/omp.tar.gz -C /tmp/omp; \
-    if [ -f /tmp/omp/omp ]; then \
-        install -m 0755 /tmp/omp/omp /usr/local/bin/omp; \
-    elif [ -f /tmp/omp/pacto-bot-api ]; then \
-        install -m 0755 /tmp/omp/pacto-bot-api /usr/local/bin/omp; \
-    else \
-        echo "No omp binary found in ${OMP_URL}"; \
-        ls -la /tmp/omp; \
-        exit 1; \
-    fi; \
-    rm -rf /tmp/omp.tar.gz /tmp/omp; \
-    omp --version
+    ARCH=$(dpkg --print-architecture); \
+    \
+    # gh CLI
+    curl -fsSL -o /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz"; \
+    tar -xzf /tmp/gh.tar.gz -C /tmp; \
+    mv "/tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh" /usr/local/bin/; \
+    rm -rf /tmp/gh*;
+#     
+#     # websocat
+#     case "$ARCH" in \
+#         arm64)  WEBSOCAT_ARCH="aarch64-unknown-linux-musl" ;; \
+#         amd64)  WEBSOCAT_ARCH="x86_64-unknown-linux-musl" ;; \
+#         *) echo "Unsupported architecture: $ARCH"; exit 1 ;; \
+#     esac; \
+#     curl -fsSL -o /usr/local/bin/websocat "https://github.com/vi/websocat/releases/download/v${WEBSOCAT_VERSION}/websocat.${WEBSOCAT_ARCH}"; \
+#     chmod +x /usr/local/bin/websocat; 
 
-# Install GitHub CLI (gh) for PR status queries in Forge and Gate 3.
+# Install omp and beads via their official installers (requires root for /usr/local/bin).
 RUN set -eux; \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; \
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg; \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends gh; \
-    rm -rf /var/lib/apt/lists/*; \
-    gh --version
+    export PI_INSTALL_DIR=/usr/local/bin; \
+    curl -fsSL https://omp.sh/install | sh; \
+    curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
 
-# Install Beads (bd) CLI for Forge's task backend.
-# The install script is fetched from the main branch of the steveyegge/beads
-# repository. For reproducibility, consider pinning to a specific release once
-# the project publishes versioned install URLs.
-ENV BD_NON_INTERACTIVE=1
-RUN set -eux; \
-    curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash; \
-    bd --version
+# Switch to botuser for language runtimes and project install.
+USER botuser
+
+# Install nvm, Node.js 24, and pnpm via corepack.
+ENV NVM_DIR="/home/botuser/.nvm"
+ENV PATH="/home/botuser/.nvm/versions/node/current/bin:/home/botuser/.cargo/bin:/home/botuser/.local/bin:${PATH}"
+RUN bash -c 'set -eux; \
+    export NVM_DIR=/home/botuser/.nvm; \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash; \
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"; \
+    nvm install 24; \
+    nvm alias default 24; \
+    ln -s "$NVM_DIR/versions/node/$(nvm current)" "$NVM_DIR/versions/node/current"; \
+    corepack enable pnpm; \
+    node -v; \
+    pnpm -v'
+
+# Install Rust toolchain.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
 
 # Install pacto-bot-sdk from the matching source repository.
 # The package is not currently published to PyPI, so we install it directly from
-# the covenant-gov/pacto-bot-api release tag that matches the pinned daemon/omp
-# version (v0.7.0). The Python package lives in the `python/` subdirectory.
-ARG PACTO_SDK_VERSION=0.7.0
-RUN pip install --no-cache-dir \
-    "git+https://github.com/covenant-gov/pacto-bot-api.git@v${PACTO_SDK_VERSION}#subdirectory=python"
+# the covenant-gov/pacto-bot-api repository. The default ref is `main`; override
+# at build time with `--build-arg PACTO_SDK_VERSION=<ref>`. The Python package
+# lives in the `python/` subdirectory.
+ARG PACTO_SDK_VERSION=main
+RUN pip install --user --no-cache-dir \
+    "git+https://github.com/covenant-gov/pacto-bot-api.git@${PACTO_SDK_VERSION}#subdirectory=python"
 
 # Copy the repository and install the shipply package.
 WORKDIR /app
-COPY . .
-RUN pip install --no-cache-dir -e .
+COPY --chown=botuser:botuser . .
+RUN pip install --user --no-cache-dir -e .
 
-# Default command (overridden by docker-compose.yml per service).
+# Runtime runs as botuser.
 CMD []
