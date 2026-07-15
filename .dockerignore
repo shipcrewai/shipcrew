@@ -21,6 +21,8 @@ venv
 data/
 secrets/
 shipply.toml
+.env*
+*.pem
 
 # Docs and tests (not needed at runtime)
 docs/

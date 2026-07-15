@@ -379,10 +379,10 @@ def test_render_omp_config_files_writes_expected_yaml(tmp_path: Path) -> None:
     dest = tmp_path / "omp"
     render_omp_config_files(cfg, dest)
 
-    assert (dest / "config.yml").exists()
+    assert (dest / "agent" / "config.yml").exists()
     assert (dest / "models.yml").exists()
 
-    config_data = yaml.safe_load((dest / "config.yml").read_text())
+    config_data = yaml.safe_load((dest / "agent" / "config.yml").read_text())
     models_data = yaml.safe_load((dest / "models.yml").read_text())
 
     assert config_data["modelRoles"]["default"] == "openrouter-default"
@@ -419,7 +419,7 @@ def test_rendered_yaml_contains_no_secrets(monkeypatch: pytest.MonkeyPatch, tmp_
     dest = tmp_path / "omp"
     render_omp_config_files(cfg, dest)
 
-    rendered = (dest / "config.yml").read_text() + (dest / "models.yml").read_text()
+    rendered = (dest / "agent" / "config.yml").read_text() + (dest / "models.yml").read_text()
     assert "sk-ant-secret" not in rendered
     assert "sk-or-secret" not in rendered
     assert "sk-moonshot-secret" not in rendered

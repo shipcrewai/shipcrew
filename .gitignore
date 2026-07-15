@@ -7,7 +7,9 @@
 
 # Deployment-specific configuration and secrets
 shipply.toml
-secrets/github-token.txt
+secrets/
+.env*
+*.pem
 
 # Python generated artifacts
 __pycache__/
@@ -17,6 +19,7 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
+.venv/
 
 # Build artifacts
 dist/

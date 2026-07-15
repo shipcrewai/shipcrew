@@ -1,7 +1,7 @@
 name: shipply
 
 services:
-  
+
   dolt-server:
     image: dolthub/dolt-sql-server:latest
     environment:
@@ -43,6 +43,19 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  init-omp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/scripts/init-omp.sh"]
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PI_CONFIG_DIR: /etc/omp
+    volumes:
+      - omp-config:/etc/omp
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    restart: on-failure
+
   scout:
     build:
       context: .
@@ -53,13 +66,27 @@ services:
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PACTO_SECRET_TOKEN: ${PACTO_SECRET_TOKEN:-}
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/scout
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
       - pacto
     command: ["python", "-m", "shipply.handlers.scout"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/scout
+    secrets:
+      - omp-auth-broker-token
+    depends_on:
+      init-omp:
+        condition: service_completed_successfully
     restart: on-failure
 
   doc-review:
@@ -71,13 +98,27 @@ services:
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/doc-review
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
       - pacto
     command: ["python", "-m", "shipply.handlers.doc_review"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/doc-review
+    secrets:
+      - omp-auth-broker-token
+    depends_on:
+      init-omp:
+        condition: service_completed_successfully
     restart: on-failure
 
   blueprint:
@@ -89,18 +130,30 @@ services:
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/blueprint
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
       - beads-data:/app/.beads
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
-
     networks:
       - pacto
     depends_on:
+      init-omp:
+        condition: service_completed_successfully
       init-dolt:
         condition: service_completed_successfully
     command: ["python", "-m", "shipply.handlers.blueprint"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/blueprint
+    secrets:
+      - omp-auth-broker-token
     restart: on-failure
 
   forge:
@@ -114,19 +167,31 @@ services:
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       GITHUB_TOKEN_FILE: /run/secrets/github-token
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/forge
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
       - beads-data:/app/.beads
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
       - pacto
     secrets:
       - github-token
+      - omp-auth-broker-token
     depends_on:
+      init-omp:
+        condition: service_completed_successfully
       init-dolt:
         condition: service_completed_successfully
     command: ["python", "-m", "shipply.handlers.forge"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/forge
     restart: on-failure
 
   gate1:
@@ -138,17 +203,30 @@ services:
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/gate1
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
       - beads-data:/app/.beads
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
       - pacto
+    secrets:
+      - omp-auth-broker-token
     depends_on:
+      init-omp:
+        condition: service_completed_successfully
       init-dolt:
         condition: service_completed_successfully
     command: ["python", "-m", "shipply.handlers.gate1"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/gate1
     restart: on-failure
 
   gate2:
@@ -160,14 +238,28 @@ services:
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/gate2
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
       - beads-data:/app/.beads
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
       - pacto
+    secrets:
+      - omp-auth-broker-token
+    depends_on:
+      init-omp:
+        condition: service_completed_successfully
     command: ["python", "-m", "shipply.handlers.gate2"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/gate2
     restart: on-failure
 
   gate3:
@@ -181,15 +273,28 @@ services:
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       GITHUB_TOKEN_FILE: /run/secrets/github-token
+      PI_CONFIG_DIR: /etc/omp
+      PI_CODING_AGENT_DIR: /tmp/omp-state/gate3
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+      OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
       - shipply-data:/app/data
+      - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
-    secrets:
-      - github-token
     networks:
       - pacto
+    secrets:
+      - github-token
+      - omp-auth-broker-token
+    depends_on:
+      init-omp:
+        condition: service_completed_successfully
     command: ["python", "-m", "shipply.handlers.gate3"]
+    read_only: true
+    tmpfs:
+      - /tmp/omp-state/gate3
     restart: on-failure
 
   dashboard:
@@ -204,11 +309,15 @@ services:
     ports:
       - "${SHIPPLY_METRICS_PORT:-9090}:9090"
     command: ["python", "-m", "shipply.dashboard"]
-    restart: on-failure  
+    restart: on-failure
 
 secrets:
   github-token:
     file: ./secrets/github-token.txt
+  omp-auth-broker-token:
+    file: ./secrets/omp-auth-broker-token.txt
+  omp-provider-config.yml:
+    file: ./secrets/omp-provider-config.yml
 
 networks:
   pacto:
@@ -222,4 +331,4 @@ volumes:
   pacto-bot-api-data:
     external: true
     name: pacto-bot-api-data
-
+  omp-config:

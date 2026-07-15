@@ -80,6 +80,7 @@ slow = "claude-slow"
 # private key are supplied as Docker secrets (github-app-webhook-secret and
 # github-app-private-key).
 app_id = "123456"
+private_key_path = "/run/secrets/github-app-private-key"
 source_org = "my-org"
 workspace_org = "my-org-workspace"
 source_installation_id = "987654321"

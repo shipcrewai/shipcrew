@@ -89,6 +89,7 @@ class GitHubConfig(BaseModel):
     """GitHub App installation and repository scoping settings."""
 
     app_id: str | None = None
+    private_key_path: str | None = None
     source_org: str | None = None
     workspace_org: str | None = None
     source_installation_id: str | None = None
@@ -244,17 +245,26 @@ def render_omp_models_yml(config: ShipplyConfig) -> dict[str, Any]:
 def render_omp_config_files(config: ShipplyConfig, dest_dir: str | Path) -> None:
     """Render OMP ``config.yml`` and ``models.yml`` into ``dest_dir``.
 
-    ``dest_dir`` is created if it does not exist. The rendered YAML files
-    contain only non-sensitive configuration; provider credentials are
-    referenced by env-var name.
+    ``dest_dir`` is created if it does not exist. Files are written to the
+    locations expected by the OMP CLI when ``PI_CONFIG_DIR`` points to
+    ``dest_dir``:
+
+    - ``agent/config.yml`` contains the ``modelRoles`` mapping.
+    - ``models.yml`` contains provider declarations.
+
+    The rendered YAML files contain only non-sensitive configuration; provider
+    credentials are referenced by env-var name.
     """
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
 
+    agent_dir = dest / "agent"
+    agent_dir.mkdir(parents=True, exist_ok=True)
+
     config_yml = {"modelRoles": render_omp_model_roles(config)}
     models_yml = render_omp_models_yml(config)
 
-    with open(dest / "config.yml", "w", encoding="utf-8") as fh:
+    with open(agent_dir / "config.yml", "w", encoding="utf-8") as fh:
         yaml.safe_dump(config_yml, fh, sort_keys=False, default_flow_style=False)
     with open(dest / "models.yml", "w", encoding="utf-8") as fh:
         yaml.safe_dump(models_yml, fh, sort_keys=False, default_flow_style=False)
