@@ -43,3 +43,52 @@ path = "data/proposals.db"
 [observability]
 log_level = "INFO"
 metrics_port = 9090
+
+[omp]
+# Shared, read-only OMP configuration directory. Docker Compose mounts the
+# omp-config volume here so handlers can run ``omp acp`` without a host mount.
+config_dir = "/etc/omp"
+
+# Writable per-handler path for OMP runtime state (sessions, caches, agent.db).
+# Each handler service should set this to a different value such as
+# "/tmp/omp-state/scout" so the shared PI_CONFIG_DIR stays immutable.
+coding_agent_dir = "/tmp/omp-state"
+
+# URL of the OMP auth broker that resolves provider credentials at runtime.
+# Provider API keys are NOT written to the shared volume; handlers fetch them
+# from the broker using OMP_AUTH_BROKER_TOKEN.
+auth_broker_url = "http://omp-auth-broker:8080"
+
+# Mapping from OMP model role to the provider model IDs declared in models.yml.
+# Shipply persona aliases (fast/default/slow) map to these roles as:
+#   fast -> smol, default -> default, slow -> slow
+[omp.model_roles]
+default = "openrouter-default"
+smol = "openrouter-smol"
+slow = "claude-slow"
+
+# Version-pinned OMP plugins to install during init. Format: name = version.
+[omp.plugins]
+# example = "1.0.0"
+
+# Version-pinned OMP skills to install during init. Format: name = version.
+[omp.skills]
+# example = "1.0.0"
+
+[github]
+# GitHub App configuration. Values here are non-sensitive; the webhook secret and
+# private key are supplied as Docker secrets (github-app-webhook-secret and
+# github-app-private-key).
+app_id = "123456"
+source_org = "my-org"
+workspace_org = "my-org-workspace"
+source_installation_id = "987654321"
+workspace_installation_id = "987654322"
+
+# Repositories this deployment is allowed to serve ("owner/name"). Events and
+# API calls for out-of-scope repos are dropped.
+repo_scope = ["my-org/repo-a"]
+
+# The shared webhook secret is read from /run/secrets/github-app-webhook-secret
+# at runtime; leave this empty in the checked-in example.
+webhook_secret = ""
