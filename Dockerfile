@@ -87,7 +87,8 @@ RUN pip install --user --no-cache-dir \
 # Copy the repository and install the shipply package.
 WORKDIR /app
 COPY --chown=botuser:botuser . .
-RUN pip install --user --no-cache-dir -e .
+RUN chmod +x /app/scripts/*.sh && \
+    pip install --user --no-cache-dir -e .
 
 # Runtime runs as botuser.
 CMD []

@@ -5,10 +5,10 @@
 # - The handler image sets WORKDIR to /app and the compose file mounts a
 #   shared volume at /app/data, so the relative database path below resolves
 #   to /app/data/proposals.db inside containers.
-# - Forge and Gate 3 read a GitHub token from /run/secrets/github-token
-#   (supplied via Docker secret in compose). The token needs repo:read scope
-#   on the target repositories. A fine-grained PAT or GitHub App installation
-#   token is preferred over a classic PAT.
+# - Provider API keys are NOT stored in this file or in the shared OMP volume.
+#   Handlers resolve them at runtime via the OMP auth broker.
+# - GitHub App secrets (private key and webhook secret) are supplied as Docker
+#   secrets and never copied into the image. See secrets setup below.
 
 [personas]
 scout = { model = "fast" }
@@ -50,13 +50,13 @@ metrics_port = 9090
 config_dir = "/etc/omp"
 
 # Writable per-handler path for OMP runtime state (sessions, caches, agent.db).
-# Each handler service should set this to a different value such as
+# Each handler service sets this to a different value such as
 # "/tmp/omp-state/scout" so the shared PI_CONFIG_DIR stays immutable.
 coding_agent_dir = "/tmp/omp-state"
 
 # URL of the OMP auth broker that resolves provider credentials at runtime.
-# Provider API keys are NOT written to the shared volume; handlers fetch them
-# from the broker using OMP_AUTH_BROKER_TOKEN.
+# The optional ``omp-auth-broker`` service in compose provides an example;
+# in production this is often operator-managed.
 auth_broker_url = "http://omp-auth-broker:8080"
 
 # Mapping from OMP model role to the provider model IDs declared in models.yml.
@@ -78,7 +78,8 @@ slow = "claude-slow"
 [github]
 # GitHub App configuration. Values here are non-sensitive; the webhook secret and
 # private key are supplied as Docker secrets (github-app-webhook-secret and
-# github-app-private-key).
+# github-app-private-key). Generate a private key from the GitHub App settings
+# page and convert it to PEM format if needed.
 app_id = "123456"
 private_key_path = "/run/secrets/github-app-private-key"
 source_org = "my-org"
@@ -97,3 +98,66 @@ webhook_secret = ""
 # Delivery de-duplication TTL in days. The bridge persists processed
 # X-GitHub-Delivery IDs to SQLite and ignores re-deliveries within this window.
 webhook_dedup_ttl_days = 7
+
+# ---------------------------------------------------------------------------
+# Secrets setup checklist
+# ---------------------------------------------------------------------------
+# Create a directory named ``secrets/`` at the repo root and add the following
+# files. All of these paths are excluded from the Docker build context and git
+# by .dockerignore and .gitignore.
+#
+# 1. secrets/github-app-private-key.pem
+#    The GitHub App private key in PEM format. This is the ONLY file that
+#    needs the private key; the ``github-app-token-manager`` service is the only
+#    service that mounts it. Forge, Gate 3, and the webhook bridge request
+#    short-lived installation tokens from the token manager over HTTP.
+#
+# 2. secrets/github-app-webhook-secret.txt
+#    The webhook secret shared with the GitHub App. Used by the
+#    ``github-webhook-bridge`` service to validate HMAC signatures.
+#
+# 3. secrets/reconcile-token.txt
+#    A random token used to authenticate calls to the bridge's ``/reconcile``
+#    endpoint. Generate with: openssl rand -hex 32
+#
+# 4. secrets/pacto-secret-token.txt
+#    The secret token the Pacto daemon expects on the Unix socket.
+#
+# 5. secrets/omp-auth-broker-token.txt
+#    A token used by handlers to authenticate to the OMP auth broker.
+#
+# 6. secrets/omp-provider-config.yml
+#    YAML file mapping OMP model roles to provider credentials (API keys, base
+#    URLs). The broker reads this at runtime and never writes it to the shared
+#    OMP volume.
+#
+# 7. (Optional) GITHUB_TOKEN_MANAGER_SECRET environment variable
+#    A shared secret used to authenticate token requests between the token
+#    manager, Forge, Gate 3, and the webhook bridge. Set it in a .env file or
+#    in the shell before running ``docker compose up``.
+#
+# GitHub App installation steps:
+# - Create a GitHub App in the source organization (or an organization that has
+#   access to the source repos). Note the App ID.
+# - Install the same GitHub App on the source organization with permissions:
+#     contents: read, metadata: read, pull_requests: write
+#   and subscribe to events: pull_request, pull_request_review.
+# - Install the App on the workspace organization with permissions:
+#     administration: write, contents: write
+#   (no events required for the workspace org).
+# - Copy the installation IDs into source_installation_id and
+#   workspace_installation_id above.
+# - Configure the GitHub App webhook URL to point at the public ingress for
+#   ``github-webhook-bridge:8000/webhook`` and set the webhook secret.
+# - Configure the workspace org to allow fork-based PRs from the workspace org
+#   back to the source org repos.
+#
+# Docker Compose deployment:
+#   docker compose config            # validate the compose file
+#   docker compose up -d init-omp    # provision the shared OMP config once
+#   docker compose up -d             # start all remaining services
+#   docker compose logs -f github-app-token-manager  # verify token requests
+#
+# The old ``github-token`` PAT secret and ``scripts/entrypoint-gh.sh`` wrapper
+# are no longer used; remove any local secrets/github-token.txt file to avoid
+# confusion.

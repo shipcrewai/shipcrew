@@ -43,6 +43,9 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  # Shared OMP configuration provisioning. Runs once on startup and must complete
+  # before any handler starts. It has no external service dependencies by design
+  # so it can render the shared volume even when the broker is operator-managed.
   init-omp:
     build:
       context: .
@@ -56,6 +59,55 @@ services:
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     restart: on-failure
 
+  # GitHub App token manager. The only service that mounts the App private key.
+  # It exposes an internal HTTP endpoint (port 8001) for source and workspace
+  # installation tokens. Not exposed to the public ingress.
+  github-app-token-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      GITHUB_APP_PRIVATE_KEY_PATH: /run/secrets/github-app-private-key
+      GITHUB_TOKEN_MANAGER_SECRET: ${GITHUB_TOKEN_MANAGER_SECRET:-}
+    volumes:
+      - shipply-data:/app/data
+      - omp-config:/etc/omp:ro
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    command: ["uvicorn", "shipply.token_manager_service:create_app", "--factory", "--host", "0.0.0.0", "--port", "8001"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    secrets:
+      - github-app-private-key
+    restart: on-failure
+
+  # OMP auth broker example. In production this is often operator-managed and
+  # referenced via OMP_AUTH_BROKER_URL. When run in compose, it resolves
+  # provider credentials (API keys, base URLs) from a secure config file and
+  # never writes them to the shared OMP volume.
+  omp-auth-broker:
+    image: ghcr.io/example-org/omp-auth-broker:latest
+    environment:
+      BROKER_LISTEN_PORT: "8080"
+      BROKER_PROVIDER_CONFIG: /run/secrets/omp-provider-config.yml
+      BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
+    volumes:
+      - omp-config:/etc/omp:ro
+    networks:
+      - pacto
+    secrets:
+      - omp-auth-broker-token
+      - omp-provider-config.yml
+    read_only: true
+    tmpfs:
+      - /tmp
+    profiles:
+      - auth-broker
+    restart: on-failure
+
   scout:
     build:
       context: .
@@ -66,9 +118,10 @@ services:
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PACTO_SECRET_TOKEN: ${PACTO_SECRET_TOKEN:-}
+      PACTO_SECRET_TOKEN_FILE: /run/secrets/pacto-secret-token
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/scout
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -100,7 +153,7 @@ services:
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/doc-review
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -132,7 +185,7 @@ services:
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/blueprint
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -160,16 +213,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: ["/app/scripts/entrypoint-gh.sh"]
+    entrypoint: ["/app/scripts/entrypoint-gh-app.sh"]
     environment:
       SHIPPLY_CONFIG: /etc/shipply/shipply.toml
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
-      GITHUB_TOKEN_FILE: /run/secrets/github-token
+      GITHUB_TOKEN_MANAGER_URL: http://github-app-token-manager:8001
+      GITHUB_TOKEN_MANAGER_SECRET: ${GITHUB_TOKEN_MANAGER_SECRET:-}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/forge
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -181,13 +235,14 @@ services:
     networks:
       - pacto
     secrets:
-      - github-token
       - omp-auth-broker-token
     depends_on:
       init-omp:
         condition: service_completed_successfully
       init-dolt:
         condition: service_completed_successfully
+      github-app-token-manager:
+        condition: service_started
     command: ["python", "-m", "shipply.handlers.forge"]
     read_only: true
     tmpfs:
@@ -205,7 +260,7 @@ services:
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/gate1
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -240,7 +295,7 @@ services:
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/gate2
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -266,16 +321,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: ["/app/scripts/entrypoint-gh.sh"]
+    entrypoint: ["/app/scripts/entrypoint-gh-app.sh"]
     environment:
       SHIPPLY_CONFIG: /etc/shipply/shipply.toml
       PACTO_TRANSPORT: unix
       PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
       PACTO_LOG_LEVEL: ${PACTO_LOG_LEVEL:-info}
-      GITHUB_TOKEN_FILE: /run/secrets/github-token
+      GITHUB_TOKEN_MANAGER_URL: http://github-app-token-manager:8001
+      GITHUB_TOKEN_MANAGER_SECRET: ${GITHUB_TOKEN_MANAGER_SECRET:-}
       PI_CONFIG_DIR: /etc/omp
       PI_CODING_AGENT_DIR: /tmp/omp-state/gate3
-      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-}
+      OMP_AUTH_BROKER_URL: ${OMP_AUTH_BROKER_URL:-http://omp-auth-broker:8080}
       OMP_AUTH_BROKER_TOKEN: ${OMP_AUTH_BROKER_TOKEN:-}
       OMP_AUTH_BROKER_TOKEN_FILE: /run/secrets/omp-auth-broker-token
     volumes:
@@ -286,11 +342,12 @@ services:
     networks:
       - pacto
     secrets:
-      - github-token
       - omp-auth-broker-token
     depends_on:
       init-omp:
         condition: service_completed_successfully
+      github-app-token-manager:
+        condition: service_started
     command: ["python", "-m", "shipply.handlers.gate3"]
     read_only: true
     tmpfs:
@@ -309,7 +366,8 @@ services:
       PACTO_SECRET_TOKEN_FILE: /run/secrets/pacto-secret-token
       GITHUB_WEBHOOK_SECRET_FILE: /run/secrets/github-app-webhook-secret
       RECONCILE_TOKEN_FILE: /run/secrets/reconcile-token
-      GITHUB_TOKEN_SOURCE_FILE: /run/secrets/github-token-source
+      GITHUB_TOKEN_MANAGER_URL: http://github-app-token-manager:8001
+      GITHUB_TOKEN_MANAGER_SECRET: ${GITHUB_TOKEN_MANAGER_SECRET:-}
       BRIDGE_DB_PATH: /var/lib/shipply-bridge/dedup.db
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
@@ -321,10 +379,14 @@ services:
     secrets:
       - github-app-webhook-secret
       - reconcile-token
-      - github-token-source
       - pacto-secret-token
     command: ["uvicorn", "shipply.webhook_bridge:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
     read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      github-app-token-manager:
+        condition: service_started
     restart: on-failure
 
   dashboard:
@@ -342,14 +404,12 @@ services:
     restart: on-failure
 
 secrets:
-  github-token:
-    file: ./secrets/github-token.txt
+  github-app-private-key:
+    file: ./secrets/github-app-private-key.pem
   github-app-webhook-secret:
     file: ./secrets/github-app-webhook-secret.txt
   reconcile-token:
     file: ./secrets/reconcile-token.txt
-  github-token-source:
-    file: ./secrets/github-token-source.txt
   pacto-secret-token:
     file: ./secrets/pacto-secret-token.txt
   omp-auth-broker-token:
