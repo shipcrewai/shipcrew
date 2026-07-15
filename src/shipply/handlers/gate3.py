@@ -19,6 +19,7 @@ import logging
 import re
 import sqlite3
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import aiosqlite
@@ -29,12 +30,25 @@ from shipply.config import ShipplyConfig, load_config
 from shipply.db import close_db, get_db, init_db
 from shipply.models import ProposalState, valid_transition
 from shipply.observability import EventEmitter
+from shipply.webhook_bridge import _repo_in_scope
 
 BOT_ID = "shipply-gate-3"
 GATE_TYPE = "gate-3"
 logger = logging.getLogger(__name__)
 
 bot = Bot(bot_id=BOT_ID, event_types=["dm_received", "mls_group_message_received"])
+
+# Per-PR URL serialization lock for bridge-event idempotency within a process.
+_bridge_locks: dict[str, asyncio.Lock] = {}
+
+
+def _lock_for_pr(pr_url: str) -> asyncio.Lock:
+    """Return an asyncio.Lock for the given PR URL, creating one if needed."""
+    lock = _bridge_locks.get(pr_url)
+    if lock is None:
+        lock = asyncio.Lock()
+        _bridge_locks[pr_url] = lock
+    return lock
 
 # Allow-list for PR identifiers: only https://github.com/<owner>/<repo>/pull/<num>
 _GITHUB_PR_URL_RE = re.compile(
@@ -244,10 +258,12 @@ def parse_bridge_payload(payload: dict[str, Any]) -> dict[str, Any] | None:
         return None
     return {
         "pr_url": pr_url,
+        "repo": payload.get("repo") or "",
         "event_type": payload.get("event_type"),
         "action": payload.get("action"),
         "delivery_id": payload.get("delivery_id"),
         "state": payload.get("state"),
+        "merged": bool(payload.get("merged", False)),
         "review_decision": payload.get("review_decision"),
         "updated_at": payload.get("updated_at"),
     }
@@ -276,35 +292,169 @@ async def resolve_proposal_by_pr_url(
     return {"proposal_id": proposal_id, "proposal": proposal}
 
 
+def _parse_event_timestamp(value: Any) -> datetime | None:
+    """Parse an ISO 8601 timestamp from a bridge event payload."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+async def _is_event_stale(
+    db: aiosqlite.Connection, pr_url: str, event_updated_at: datetime
+) -> bool:
+    """Return True if a bridge event is older-or-equal to the last processed one."""
+    cursor = await db.execute(
+        "SELECT last_event_at FROM bridge_events WHERE pr_url = ?",
+        (pr_url,),
+    )
+    row = await cursor.fetchone()
+    await cursor.close()
+    if row is None or row[0] is None:
+        return False
+    last = _parse_event_timestamp(row[0])
+    if last is None:
+        return False
+    return event_updated_at <= last
+
+
+async def _record_event_processed(
+    db: aiosqlite.Connection,
+    pr_url: str,
+    event_updated_at: datetime,
+    event_state: str,
+) -> None:
+    """Record the most recently processed event timestamp/state for a PR URL."""
+    await db.execute(
+        """
+        INSERT INTO bridge_events (pr_url, last_event_at, last_event_state)
+        VALUES (?, ?, ?)
+        ON CONFLICT(pr_url)
+        DO UPDATE SET
+            last_event_at = excluded.last_event_at,
+            last_event_state = excluded.last_event_state,
+            updated_at = datetime('now')
+        """,
+        (pr_url, event_updated_at.isoformat().replace("+00:00", "Z"), event_state),
+    )
+    await db.commit()
+
+
 async def handle_bridge_event(
     db: aiosqlite.Connection,
     emitter: EventEmitter,
     payload: dict[str, Any],
+    config: ShipplyConfig | None = None,
+    bot: Bot | None = None,
 ) -> dict[str, Any] | None:
-    """Handle a bridge event for U6 by parsing and logging it.
+    """Handle a bridge event by resolving the PR and transitioning state.
 
-    U7 will implement the actual proposal transitions.  For now the handler
-    validates the payload, resolves the proposal by PR URL, and emits a log
-    event so operators can verify the bridge is delivering events.
+    Transitions are applied only when the proposal is in ``GATE_3``.  Events
+    for out-of-scope repositories, unknown PRs, malformed payloads, or stale
+    timestamps are dropped.  The transition to ``FORGE`` notifies the Forge
+    handler via a state-transition DM when ``bot`` is provided.
     """
     parsed = parse_bridge_payload(payload)
     if parsed is None:
-        logger.warning("dropping malformed bridge payload: keys=%s", sorted(payload.keys()) if isinstance(payload, dict) else type(payload))
+        logger.warning(
+            "dropping malformed bridge payload: keys=%s",
+            sorted(payload.keys()) if isinstance(payload, dict) else type(payload),
+        )
+        return None
+
+    cfg = config or _config()
+    repo_full_name = parsed["repo"]
+    if not _repo_in_scope(repo_full_name, cfg.github.repo_scope):
+        logger.info("dropping out-of-scope repo: %s", repo_full_name)
         return None
 
     resolved = await resolve_proposal_by_pr_url(db, parsed["pr_url"])
     if resolved is None:
-        logger.info(
-            "bridge event for unknown PR dropped: %s", parsed["pr_url"]
-        )
+        logger.info("bridge event for unknown PR dropped: %s", parsed["pr_url"])
         return None
 
-    await emitter.emit(
-        event_type="bridge_event_received",
-        proposal_id=resolved["proposal_id"],
-        stage=ProposalState.GATE_3.value,
-        payload=parsed,
-    )
+    pr_url = parsed["pr_url"]
+    event_updated_at = _parse_event_timestamp(parsed.get("updated_at"))
+    if event_updated_at is None:
+        logger.warning(
+            "bridge event missing updated_at for %s; processing without ordering",
+            pr_url,
+        )
+
+    async with _lock_for_pr(pr_url):
+        if event_updated_at is not None and await _is_event_stale(
+            db, pr_url, event_updated_at
+        ):
+            logger.info("dropping stale bridge event for %s", pr_url)
+            return resolved
+
+        await emitter.emit(
+            event_type="bridge_event_received",
+            proposal_id=resolved["proposal_id"],
+            stage=ProposalState.GATE_3.value,
+            payload=parsed,
+        )
+
+        proposal = await _get_proposal(db, resolved["proposal_id"])
+        if proposal is None:
+            return None
+        current_state = proposal["state"]
+        state = (parsed.get("state") or "").lower()
+        review_decision = (parsed.get("review_decision") or "").upper()
+        merged = bool(parsed.get("merged", False))
+
+        target_state: str | None = None
+        reason: str | None = None
+        if state == "merged":
+            target_state = ProposalState.CLOSED.value
+            reason = "PR merged"
+        elif review_decision == "CHANGES_REQUESTED":
+            target_state = ProposalState.FORGE.value
+            reason = "PR changes requested"
+        elif state == "closed" and not merged:
+            target_state = ProposalState.FORGE.value
+            reason = "PR closed without merge"
+
+        record_state = target_state or current_state
+
+        if target_state is None:
+            if event_updated_at is not None:
+                await _record_event_processed(db, pr_url, event_updated_at, record_state)
+            return resolved
+
+        if target_state == current_state:
+            if event_updated_at is not None:
+                await _record_event_processed(db, pr_url, event_updated_at, record_state)
+            return resolved
+
+        if current_state != ProposalState.GATE_3.value:
+            logger.info(
+                "dropping bridge event for proposal not in GATE_3: %s state=%s",
+                proposal["id"],
+                current_state,
+            )
+            if event_updated_at is not None:
+                await _record_event_processed(db, pr_url, event_updated_at, record_state)
+            return resolved
+
+        await _transition_proposal(
+            db,
+            emitter,
+            proposal["id"],
+            current_state,
+            target_state,
+            reason=reason,
+        )
+        if target_state == ProposalState.FORGE.value and bot is not None:
+            await _notify_next_handler(
+                bot, proposal["id"], current_state, target_state
+            )
+
+        if event_updated_at is not None:
+            await _record_event_processed(db, pr_url, event_updated_at, record_state)
+
     return resolved
 
 
@@ -543,10 +693,38 @@ async def _handle_check(
         await close_db(db)
 
 
+async def _handle_bridge_message(
+    bot: Bot, event: AgentEventParams
+) -> dict[str, Any] | None:
+    """Handle a Pacto event whose content is a JSON bridge payload."""
+    config = _config()
+    db = await _open_db(config)
+    emitter = EventEmitter(db)
+    try:
+        payload = json.loads(event.content or "{}")
+    except json.JSONDecodeError:
+        await close_db(db)
+        return None
+    if not isinstance(payload, dict) or payload.get("shipply") != "bridge_event":
+        await close_db(db)
+        return None
+    try:
+        return await handle_bridge_event(db, emitter, payload, config=config, bot=bot)
+    finally:
+        await close_db(db)
+
+
 @bot.dm
 async def on_dm(event: AgentEventParams, bot: Bot) -> dict[str, Any] | None:
-    """Handle incoming DMs, including state-transition notifications."""
+    """Handle incoming DMs, including bridge events and state-transition notifications."""
     content = (event.content or "").strip()
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        payload = None
+    if isinstance(payload, dict) and payload.get("shipply") == "bridge_event":
+        return await _handle_bridge_message(bot, event)
+
     transition = _parse_transition(content)
     if transition is None:
         return None
@@ -557,7 +735,15 @@ async def on_dm(event: AgentEventParams, bot: Bot) -> dict[str, Any] | None:
 
 @bot.event("mls_group_message_received")
 async def on_group_message(event: AgentEventParams, bot: Bot) -> dict[str, Any] | None:
-    """Handle MLS group messages in the Gate 3 Squad."""
+    """Handle MLS group messages and bridge events in the Gate 3 Squad."""
+    content = (event.content or "").strip()
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        payload = None
+    if isinstance(payload, dict) and payload.get("shipply") == "bridge_event":
+        return await _handle_bridge_message(bot, event)
+
     config = _config()
     group_id = event.chat_id or ""
     if not group_id:
@@ -567,7 +753,6 @@ async def on_group_message(event: AgentEventParams, bot: Bot) -> dict[str, Any] 
     if expected_group is not None and group_id != expected_group:
         return None
 
-    content = (event.content or "").strip()
     parts = content.split()
     if len(parts) >= 2 and parts[0].lower() == "/gate3":
         subcommand = parts[1].lower()

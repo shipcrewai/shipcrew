@@ -397,6 +397,7 @@ def _build_bridge_payload(
         "pr_number": pr_number,
         "pr_url": pr_url,
         "state": pr.get("state"),
+        "merged": pr.get("merged", False),
         "review_decision": review_decision,
         "updated_at": pr.get("updated_at") or review.get("submitted_at"),
     }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from pathlib import Path
@@ -22,6 +23,8 @@ from shipply.config import (
 )
 from shipply.db import close_db, get_db, init_db
 from shipply.models import ProposalState
+from shipply.observability import EventEmitter
+from shipply.webhook_bridge import BRIDGE_SENDER_ID
 import shipply.handlers.gate3 as gate3
 
 
@@ -581,3 +584,375 @@ class TestHandleCheck:
         assert "No proposal is currently under PR review" in reply_text
         assert subprocess_calls == []
         mock_bot.send_group_message.assert_not_called()
+
+
+class TestBridgeEvents:
+    """Tests for event-driven PR review updates from the webhook bridge."""
+
+    async def test_bridge_event_merged_transitions_to_closed(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A bridge event reporting a merged PR should close the proposal."""
+        proposal_id = "prop-bridge-merged"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        payload = self._bridge_payload(state="merged", merged=True)
+        result = await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        assert result is not None
+        assert result["proposal_id"] == proposal_id
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.CLOSED.value
+
+        cursor = await db.execute(
+            "SELECT event_type, payload FROM events WHERE proposal_id = ? AND event_type = ?",
+            (proposal_id, "proposal_transition"),
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row is not None
+        payload = json.loads(row[1])
+        assert payload["from_state"] == ProposalState.GATE_3.value
+        assert payload["to_state"] == ProposalState.CLOSED.value
+        assert payload["reason"] == "PR merged"
+
+        await self._assert_bridge_event_record(db, PR_URL, ProposalState.CLOSED.value)
+
+    async def test_bridge_event_changes_requested_transitions_to_forge(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A bridge event with CHANGES_REQUESTED should return the proposal to FORGE."""
+        proposal_id = "prop-bridge-changes"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        payload = self._bridge_payload(review_decision="CHANGES_REQUESTED")
+        result = await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        assert result is not None
+        assert result["proposal_id"] == proposal_id
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.FORGE.value
+
+        cursor = await db.execute(
+            "SELECT event_type, payload FROM events WHERE proposal_id = ? AND event_type = ?",
+            (proposal_id, "proposal_transition"),
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row is not None
+        payload = json.loads(row[1])
+        assert payload["from_state"] == ProposalState.GATE_3.value
+        assert payload["to_state"] == ProposalState.FORGE.value
+        assert payload["reason"] == "PR changes requested"
+
+        mock_bot.send_dm.assert_awaited_once()
+        dm_call = mock_bot.send_dm.call_args
+        assert dm_call.kwargs["recipient"] == "shipply-forge"
+        dm_payload = json.loads(dm_call.kwargs["content"])
+        assert dm_payload["shipply"] == "transition"
+        assert dm_payload["proposal_id"] == proposal_id
+        assert dm_payload["from"] == ProposalState.GATE_3.value
+        assert dm_payload["to"] == ProposalState.FORGE.value
+
+        await self._assert_bridge_event_record(db, PR_URL, ProposalState.FORGE.value)
+
+    async def test_bridge_event_stale_is_ignored(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """An older bridge event should be ignored after a newer one is processed."""
+        proposal_id = "prop-bridge-stale"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        first = self._bridge_payload(
+            review_decision="CHANGES_REQUESTED",
+            updated_at="2026-07-15T16:00:00Z",
+        )
+        await gate3.handle_bridge_event(db, emitter, first, bot=mock_bot)
+
+        second = self._bridge_payload(
+            state="merged",
+            merged=True,
+            updated_at="2026-07-15T15:00:00Z",
+        )
+        result = await gate3.handle_bridge_event(db, emitter, second, bot=mock_bot)
+
+        assert result is not None
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.FORGE.value
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM events WHERE proposal_id = ? AND event_type = ?",
+            (proposal_id, "proposal_transition"),
+        )
+        count = (await cursor.fetchone())[0]
+        await cursor.close()
+        assert count == 1
+
+        await self._assert_bridge_event_record(db, PR_URL, "2026-07-15T16:00:00Z")
+
+    async def test_bridge_event_out_of_scope_repo_dropped(
+        self,
+        db: aiosqlite.Connection,
+        test_config: ShipplyConfig,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A bridge event for a repo outside the configured scope is dropped."""
+        test_config.github.repo_scope = ["owner/repo"]
+        proposal_id = "prop-bridge-scope"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        payload = self._bridge_payload(repo="other-org/other-repo")
+        result = await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        assert result is None
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.GATE_3.value
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM bridge_events WHERE pr_url = ?",
+            (PR_URL,),
+        )
+        count = (await cursor.fetchone())[0]
+        await cursor.close()
+        assert count == 0
+
+    async def test_bridge_event_unknown_pr_dropped(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A bridge event for an unknown PR URL is dropped without changing state."""
+        proposal_id = "prop-bridge-known"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        unknown_url = "https://github.com/owner/repo/pull/99"
+        payload = self._bridge_payload(pr_url=unknown_url)
+        result = await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        assert result is None
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.GATE_3.value
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM bridge_events WHERE pr_url = ?",
+            (unknown_url,),
+        )
+        count = (await cursor.fetchone())[0]
+        await cursor.close()
+        assert count == 0
+
+    async def test_bridge_event_malformed_dropped(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A malformed bridge payload is dropped without side effects."""
+        proposal_id = "prop-bridge-malformed"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        payload = {"shipply": "bridge_event"}
+        result = await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        assert result is None
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.GATE_3.value
+
+    async def test_gate3_check_and_bridge_event_same_final_state(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+        mock_subprocess,
+    ) -> None:
+        """/gate3 check and a bridge event should converge on the same final state."""
+        # /gate3 check path
+        proposal_id_check = "prop-bridge-vs-check"
+        pr_url_check = "https://github.com/owner/repo/pull/2"
+        await insert_proposal(db, proposal_id_check, title="Check Path")
+        await insert_molecule(db, proposal_id_check, pr_url=pr_url_check)
+        await insert_gate(db, proposal_id_check)
+        await insert_squad_members(db, GATE_3_GROUP_ID, ["maintainer-1"])
+
+        subprocess_calls = mock_subprocess(
+            pr_info={
+                "state": "MERGED",
+                "url": pr_url_check,
+                "title": "Check PR",
+                "reviewDecision": "APPROVED",
+                "mergeStateStatus": "CLEAN",
+            }
+        )
+        event = make_event("/gate3 check", author="maintainer-1")
+        await gate3.on_group_message(event, mock_bot)
+
+        assert len(subprocess_calls) == 1
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id_check,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.CLOSED.value
+
+        # Bridge event path
+        proposal_id_bridge = "prop-bridge-vs-bridge"
+        pr_url_bridge = "https://github.com/owner/repo/pull/3"
+        await insert_proposal(db, proposal_id_bridge, title="Bridge Path")
+        await insert_molecule(db, proposal_id_bridge, pr_url=pr_url_bridge)
+
+        emitter = EventEmitter(db)
+        payload = self._bridge_payload(
+            pr_url=pr_url_bridge,
+            state="merged",
+            merged=True,
+            updated_at="2026-07-15T17:00:00Z",
+        )
+        await gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot)
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id_bridge,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.CLOSED.value
+
+        for proposal_id in (proposal_id_check, proposal_id_bridge):
+            cursor = await db.execute(
+                "SELECT payload FROM events WHERE proposal_id = ? AND event_type = ?",
+                (proposal_id, "proposal_transition"),
+            )
+            row = await cursor.fetchone()
+            await cursor.close()
+            assert row is not None
+            payload = json.loads(row[0])
+            assert payload["to_state"] == ProposalState.CLOSED.value
+            assert payload["reason"] == "PR merged"
+
+    async def test_bridge_event_concurrent_idempotent(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """Concurrent duplicate bridge events should only transition once."""
+        proposal_id = "prop-bridge-concurrent"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        emitter = EventEmitter(db)
+        payload = self._bridge_payload(state="merged", merged=True)
+
+        results = await asyncio.gather(
+            gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot),
+            gate3.handle_bridge_event(db, emitter, payload, bot=mock_bot),
+        )
+
+        assert all(r is not None for r in results)
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.CLOSED.value
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM events WHERE proposal_id = ? AND event_type = ?",
+            (proposal_id, "proposal_transition"),
+        )
+        count = (await cursor.fetchone())[0]
+        await cursor.close()
+        assert count == 1
+
+    async def test_bridge_event_dm_handler_transitions_to_closed(
+        self,
+        db: aiosqlite.Connection,
+        patch_config: None,
+        mock_bot: MagicMock,
+    ) -> None:
+        """A bridge event delivered as a DM is processed by the Pacto handler."""
+        proposal_id = "prop-bridge-dm"
+        await insert_proposal(db, proposal_id)
+        await insert_molecule(db, proposal_id, pr_url=PR_URL)
+
+        payload = self._bridge_payload(state="merged", merged=True)
+        event = make_event(
+            json.dumps(payload),
+            chat_id=None,
+            event_type="dm_received",
+        )
+        await gate3.on_dm(event, mock_bot)
+
+        cursor = await db.execute("SELECT state FROM proposals WHERE id = ?", (proposal_id,))
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row[0] == ProposalState.CLOSED.value
+
+    @staticmethod
+    def _bridge_payload(
+        pr_url: str = PR_URL,
+        repo: str = "owner/repo",
+        state: str = "open",
+        review_decision: str | None = None,
+        updated_at: str = "2026-07-15T15:00:00Z",
+        merged: bool = False,
+    ) -> dict[str, Any]:
+        return {
+            "shipply": "bridge_event",
+            "delivery_id": "d-1",
+            "sender": BRIDGE_SENDER_ID,
+            "event_type": "pull_request",
+            "action": "synchronize",
+            "repo": repo,
+            "pr_number": 1,
+            "pr_url": pr_url,
+            "state": state,
+            "merged": merged,
+            "review_decision": review_decision,
+            "updated_at": updated_at,
+        }
+
+    @staticmethod
+    async def _assert_bridge_event_record(
+        db: aiosqlite.Connection, pr_url: str, expected_at_or_state: str
+    ) -> None:
+        cursor = await db.execute(
+            "SELECT last_event_at, last_event_state FROM bridge_events WHERE pr_url = ?",
+            (pr_url,),
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
+        assert row is not None
+        assert expected_at_or_state in (row[0], row[1])
