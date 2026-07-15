@@ -96,6 +96,7 @@ class GitHubConfig(BaseModel):
     workspace_installation_id: str | None = None
     repo_scope: list[str] = Field(default_factory=list)
     webhook_secret: str | None = None
+    webhook_dedup_ttl_days: int = Field(default=7, ge=1)
 
 
 class ShipplyConfig(BaseModel):

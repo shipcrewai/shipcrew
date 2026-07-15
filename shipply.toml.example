@@ -93,3 +93,7 @@ repo_scope = ["my-org/repo-a"]
 # The shared webhook secret is read from /run/secrets/github-app-webhook-secret
 # at runtime; leave this empty in the checked-in example.
 webhook_secret = ""
+
+# Delivery de-duplication TTL in days. The bridge persists processed
+# X-GitHub-Delivery IDs to SQLite and ignores re-deliveries within this window.
+webhook_dedup_ttl_days = 7

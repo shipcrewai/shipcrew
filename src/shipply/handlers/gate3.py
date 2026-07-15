@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import sqlite3
 import uuid
@@ -31,6 +32,7 @@ from shipply.observability import EventEmitter
 
 BOT_ID = "shipply-gate-3"
 GATE_TYPE = "gate-3"
+logger = logging.getLogger(__name__)
 
 bot = Bot(bot_id=BOT_ID, event_types=["dm_received", "mls_group_message_received"])
 
@@ -227,6 +229,83 @@ def _parse_transition(content: str) -> dict[str, str] | None:
 def _validate_pr_url(pr_url: str) -> bool:
     """Return True if ``pr_url`` matches the allowed GitHub PR URL format."""
     return _GITHUB_PR_URL_RE.match(pr_url.strip()) is not None
+
+
+def parse_bridge_payload(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Parse a Nostr bridge payload sent by the webhook bridge.
+
+    Returns a normalized dict with the PR URL and relevant event metadata,
+    or ``None`` if the payload is not a recognized bridge event.
+    """
+    if not isinstance(payload, dict) or payload.get("shipply") != "bridge_event":
+        return None
+    pr_url = payload.get("pr_url")
+    if not pr_url or not _validate_pr_url(pr_url):
+        return None
+    return {
+        "pr_url": pr_url,
+        "event_type": payload.get("event_type"),
+        "action": payload.get("action"),
+        "delivery_id": payload.get("delivery_id"),
+        "state": payload.get("state"),
+        "review_decision": payload.get("review_decision"),
+        "updated_at": payload.get("updated_at"),
+    }
+
+
+async def resolve_proposal_by_pr_url(
+    db: aiosqlite.Connection, pr_url: str
+) -> dict[str, Any] | None:
+    """Resolve a proposal record from a GitHub PR URL.
+
+    Looks up the PR URL in the ``molecules`` table and returns the proposal
+    record plus its ID.  Returns ``None`` when the PR URL is not known.
+    """
+    cursor = await db.execute(
+        "SELECT proposal_id FROM molecules WHERE pr_url = ?",
+        (pr_url,),
+    )
+    row = await cursor.fetchone()
+    await cursor.close()
+    if row is None:
+        return None
+    proposal_id = row[0]
+    proposal = await _get_proposal(db, proposal_id)
+    if proposal is None:
+        return None
+    return {"proposal_id": proposal_id, "proposal": proposal}
+
+
+async def handle_bridge_event(
+    db: aiosqlite.Connection,
+    emitter: EventEmitter,
+    payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Handle a bridge event for U6 by parsing and logging it.
+
+    U7 will implement the actual proposal transitions.  For now the handler
+    validates the payload, resolves the proposal by PR URL, and emits a log
+    event so operators can verify the bridge is delivering events.
+    """
+    parsed = parse_bridge_payload(payload)
+    if parsed is None:
+        logger.warning("dropping malformed bridge payload: keys=%s", sorted(payload.keys()) if isinstance(payload, dict) else type(payload))
+        return None
+
+    resolved = await resolve_proposal_by_pr_url(db, parsed["pr_url"])
+    if resolved is None:
+        logger.info(
+            "bridge event for unknown PR dropped: %s", parsed["pr_url"]
+        )
+        return None
+
+    await emitter.emit(
+        event_type="bridge_event_received",
+        proposal_id=resolved["proposal_id"],
+        stage=ProposalState.GATE_3.value,
+        payload=parsed,
+    )
+    return resolved
 
 
 async def _query_pr_status(pr_url: str) -> dict[str, Any] | None:

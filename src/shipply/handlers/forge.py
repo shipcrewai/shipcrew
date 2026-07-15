@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
 import uuid
 from pathlib import Path
@@ -21,11 +22,15 @@ from pacto_bot_sdk._generated.models import AgentEventParams
 
 from shipply.backends import BeadsBackend, BeadsBackendError
 from shipply.backends.beads_schema import Bead
-from shipply.config import ShipplyConfig, load_config
+from shipply.config import GitHubConfig, ShipplyConfig, load_config
 from shipply.db import close_db, get_db, init_db
+from shipply.github_app import GitHubAppTokenManager
+from shipply.github_pr import ForkBasedPRService, GitHubPRError
 from shipply.harness import HarnessError, HarnessPool, HarnessResult
 from shipply.models import ProposalState, valid_transition
 from shipply.observability import EventEmitter
+
+logger = logging.getLogger(__name__)
 
 BOT_ID = "shipply-forge"
 FORMULA_DIR = Path(".beads/formulas")
@@ -51,6 +56,43 @@ async def _get_pool(config: ShipplyConfig | None = None) -> HarnessPool:
     if _pool is None:
         _pool = HarnessPool(config=config or _config())
     return _pool
+
+
+def _source_repo_for_pr(gh: GitHubConfig) -> str | None:
+    """Return the first configured source repo as ``owner/repo``.
+
+    Repo-scope items may be ``owner/repo`` or just ``repo``; bare repo names
+    are resolved with ``github.source_org``.
+    """
+    if not gh.source_org or not gh.repo_scope:
+        return None
+    item = gh.repo_scope[0]
+    if "/" in item:
+        return item
+    return f"{gh.source_org}/{item}"
+
+
+def _pr_service_configured(gh: GitHubConfig) -> bool:
+    """Return ``True`` when the GitHub App is configured for PR creation."""
+    return bool(
+        gh.app_id
+        and (gh.private_key_path or os.environ.get("GITHUB_APP_PRIVATE_KEY_PATH"))
+        and gh.source_org
+        and gh.workspace_org
+        and gh.repo_scope
+    )
+
+
+async def _get_pr_service(config: ShipplyConfig) -> ForkBasedPRService | None:
+    """Build a fork-based PR service if the GitHub App is configured."""
+    if not _pr_service_configured(config.github):
+        return None
+    try:
+        token_manager = GitHubAppTokenManager(config.github)
+        return ForkBasedPRService(token_manager, config.github.repo_scope)
+    except Exception as exc:
+        logger.warning("Failed to create fork-based PR service: %s", exc)
+        return None
 
 
 async def _group_id(config: ShipplyConfig) -> str | None:
@@ -574,11 +616,31 @@ async def _handle_forge(
 
         pr_url: str | None = None
         if molecule.root_id:
-            try:
-                root_bead = await backend.get_bead(molecule.root_id)
-                pr_url = root_bead.pr_url or root_bead.url or root_bead.external_ref
-            except BeadsBackendError:
-                pr_url = None
+            service = await _get_pr_service(config)
+            source_repo = _source_repo_for_pr(config.github)
+            if service is not None and source_repo is not None:
+                try:
+                    pr_url = await service.create_or_update_pr(
+                        source_repo=source_repo,
+                        proposal_id=proposal_id,
+                        title=proposal["title"],
+                        body=f"Shipply proposal `{proposal_id}`",
+                    )
+                except GitHubPRError as exc:
+                    bot.log(
+                        f"PR service failed for {proposal_id}: {exc}", level="warn"
+                    )
+                    pr_url = None
+                finally:
+                    await service.close()
+            if pr_url is None:
+                try:
+                    root_bead = await backend.get_bead(molecule.root_id)
+                    pr_url = (
+                        root_bead.pr_url or root_bead.url or root_bead.external_ref
+                    )
+                except BeadsBackendError:
+                    pr_url = None
 
         await _record_pr_url(db, proposal_id, pr_url)
         await emitter.emit(

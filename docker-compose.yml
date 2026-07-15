@@ -297,6 +297,36 @@ services:
       - /tmp/omp-state/gate3
     restart: on-failure
 
+  github-webhook-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SHIPPLY_CONFIG: /etc/shipply/shipply.toml
+      PACTO_TRANSPORT: unix
+      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_SECRET_TOKEN: ${PACTO_SECRET_TOKEN:-}
+      PACTO_SECRET_TOKEN_FILE: /run/secrets/pacto-secret-token
+      GITHUB_WEBHOOK_SECRET_FILE: /run/secrets/github-app-webhook-secret
+      RECONCILE_TOKEN_FILE: /run/secrets/reconcile-token
+      GITHUB_TOKEN_SOURCE_FILE: /run/secrets/github-token-source
+      BRIDGE_DB_PATH: /var/lib/shipply-bridge/dedup.db
+    volumes:
+      - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
+      - bridge-dedup-db:/var/lib/shipply-bridge
+      - omp-config:/etc/omp:ro
+      - ./shipply.toml:/etc/shipply/shipply.toml:ro
+    networks:
+      - pacto
+    secrets:
+      - github-app-webhook-secret
+      - reconcile-token
+      - github-token-source
+      - pacto-secret-token
+    command: ["uvicorn", "shipply.webhook_bridge:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+    read_only: true
+    restart: on-failure
+
   dashboard:
     build:
       context: .
@@ -314,6 +344,14 @@ services:
 secrets:
   github-token:
     file: ./secrets/github-token.txt
+  github-app-webhook-secret:
+    file: ./secrets/github-app-webhook-secret.txt
+  reconcile-token:
+    file: ./secrets/reconcile-token.txt
+  github-token-source:
+    file: ./secrets/github-token-source.txt
+  pacto-secret-token:
+    file: ./secrets/pacto-secret-token.txt
   omp-auth-broker-token:
     file: ./secrets/omp-auth-broker-token.txt
   omp-provider-config.yml:
@@ -332,3 +370,4 @@ volumes:
     external: true
     name: pacto-bot-api-data
   omp-config:
+  bridge-dedup-db:

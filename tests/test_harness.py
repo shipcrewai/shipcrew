@@ -1097,3 +1097,142 @@ async def test_authentication_failure_raises(mock_agent, tmp_path):
     with pytest.raises(HarnessError, match="ACP authentication failed"):
         await backend.start()
     await backend.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Environment forwarding and validation tests
+# ---------------------------------------------------------------------------
+
+
+def _dump_env_script(env_path: Path, keys: tuple[str, ...]) -> str:
+    return (
+        "import json, os\n"
+        f"env = {{k: os.environ.get(k) for k in {keys!r}}}\n"
+        f"with open({str(env_path)!r}, 'w', encoding='utf-8') as f:\n"
+        "    json.dump(env, f)\n"
+    )
+
+
+async def test_harness_backend_forwards_env_vars(tmp_path):
+    """Forwarded env values are visible to the spawned subprocess."""
+    env_path = tmp_path / "env.json"
+    script = tmp_path / "dump_env.py"
+    script.write_text(
+        _dump_env_script(
+            env_path,
+            (
+                "PI_CONFIG_DIR",
+                "PI_CODING_AGENT_DIR",
+                "OMP_AUTH_BROKER_URL",
+                "OMP_AUTH_BROKER_TOKEN",
+            ),
+        ),
+        encoding="utf-8",
+    )
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    agent_dir = tmp_path / "agent"
+    agent_dir.mkdir()
+    backend = HarnessBackend(
+        binary=sys.executable,
+        args=[str(script)],
+        cwd=str(tmp_path),
+        timeout=2.0,
+        env={
+            "PI_CONFIG_DIR": str(config_dir),
+            "PI_CODING_AGENT_DIR": str(agent_dir),
+            "OMP_AUTH_BROKER_URL": "http://broker.example",
+            "OMP_AUTH_BROKER_TOKEN": "secret-token",
+        },
+    )
+    with pytest.raises(HarnessError):
+        await backend.start()
+
+    dumped = json.loads(env_path.read_text(encoding="utf-8"))
+    assert dumped["PI_CONFIG_DIR"] == str(config_dir)
+    assert dumped["PI_CODING_AGENT_DIR"] == str(agent_dir)
+    assert dumped["OMP_AUTH_BROKER_URL"] == "http://broker.example"
+    assert dumped["OMP_AUTH_BROKER_TOKEN"] == "secret-token"
+
+
+async def test_harness_pool_env_overrides_merged(tmp_path):
+    """Pool env is merged with os.environ and passed to each backend."""
+    env_path = tmp_path / "env.json"
+    script = tmp_path / "dump_env.py"
+    script.write_text(
+        _dump_env_script(
+            env_path,
+            ("PI_CODING_AGENT_DIR", "CUSTOM_VAR", "PATH"),
+        ),
+        encoding="utf-8",
+    )
+    agent_dir = tmp_path / "agent"
+    agent_dir.mkdir()
+    pool = HarnessPool(
+        binary=sys.executable,
+        args=[str(script)],
+        cwd=str(tmp_path),
+        timeout=2.0,
+        env={
+            "PI_CODING_AGENT_DIR": str(agent_dir),
+            "CUSTOM_VAR": "pool-value",
+        },
+    )
+    with pytest.raises(HarnessError):
+        await pool.get("scout")
+
+    dumped = json.loads(env_path.read_text(encoding="utf-8"))
+    assert dumped["PI_CODING_AGENT_DIR"] == str(agent_dir)
+    assert dumped["CUSTOM_VAR"] == "pool-value"
+    assert dumped["PATH"] == os.environ["PATH"]
+
+
+async def test_harness_error_missing_pi_config_dir(tmp_path):
+    backend = HarnessBackend(
+        binary="omp",
+        cwd=str(tmp_path),
+        env={"PI_CONFIG_DIR": str(tmp_path / "missing")},
+    )
+    with pytest.raises(HarnessError, match="PI_CONFIG_DIR does not exist"):
+        await backend.start()
+
+
+async def test_harness_error_missing_broker_token(tmp_path):
+    backend = HarnessBackend(
+        binary="omp",
+        cwd=str(tmp_path),
+        env={"OMP_AUTH_BROKER_URL": "http://broker.example"},
+    )
+    with pytest.raises(HarnessError, match="OMP_AUTH_BROKER_TOKEN"):
+        await backend.start()
+
+
+async def test_harness_broker_token_file_satisfies_validation(tmp_path):
+    token_file = tmp_path / "token"
+    token_file.write_text("secret", encoding="utf-8")
+    backend = HarnessBackend(
+        binary="definitely-not-omp",
+        cwd=str(tmp_path),
+        env={
+            "OMP_AUTH_BROKER_URL": "http://broker.example",
+            "OMP_AUTH_BROKER_TOKEN_FILE": str(token_file),
+        },
+    )
+    with pytest.raises(HarnessError, match="Failed to start harness process"):
+        await backend.start()
+
+
+async def test_harness_error_unwritable_coding_agent_dir(tmp_path):
+    agent_dir = tmp_path / "agent"
+    agent_dir.mkdir()
+    os.chmod(agent_dir, 0o555)
+    try:
+        backend = HarnessBackend(
+            binary="omp",
+            cwd=str(tmp_path),
+            env={"PI_CODING_AGENT_DIR": str(agent_dir)},
+        )
+        with pytest.raises(HarnessError, match="not writable"):
+            await backend.start()
+    finally:
+        os.chmod(agent_dir, 0o755)

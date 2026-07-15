@@ -373,3 +373,95 @@ async def test_forge_all_beads_complete_closes_root_and_records_pr_url(
     # No harness calls and no diagnostic alerts when there is nothing to do.
     mock_pool.send.assert_not_awaited()
     mock_bot.send_group_message.assert_not_awaited()
+
+
+async def test_forge_uses_configured_pr_service_and_records_url(
+    db: aiosqlite.Connection,
+    patch_config: None,
+    mock_bot: MagicMock,
+    mock_backend: MagicMock,
+    monkeypatch,
+) -> None:
+    """When a PR service is configured, Forge uses it and records the returned URL."""
+    proposal_id = "prop-forge-pr"
+    await insert_forge_proposal(db, proposal_id)
+
+    molecule = Molecule(
+        id="mol-pr",
+        root_id="mol-pr",
+        proposal_id=proposal_id,
+        bead_ids=[],
+        beads=[Bead(id="mol-pr")],
+    )
+    mock_backend.create_molecule.return_value = molecule
+    mock_backend.get_ready.return_value = []
+    mock_backend.get_blocked.return_value = []
+    mock_backend.close_eligible_roots.return_value = ["mol-pr"]
+
+    mock_service = AsyncMock()
+    mock_service.create_or_update_pr = AsyncMock(
+        return_value="https://github.com/source-org/repo/pull/99"
+    )
+    mock_service.close = AsyncMock()
+    monkeypatch.setattr(forge, "_get_pr_service", AsyncMock(return_value=mock_service))
+    monkeypatch.setattr(forge, "_source_repo_for_pr", lambda gh: "source-org/repo")
+
+    event = make_transition_event(proposal_id)
+    await forge.on_dm(event, mock_bot)
+
+    mock_service.create_or_update_pr.assert_awaited_once_with(
+        source_repo="source-org/repo",
+        proposal_id=proposal_id,
+        title=f"Proposal {proposal_id}",
+        body=f"Shipply proposal `{proposal_id}`",
+    )
+    mock_service.close.assert_awaited_once()
+    mock_backend.get_bead.assert_not_awaited()
+
+    cur = await db.execute("SELECT pr_url FROM molecules WHERE proposal_id = ?", (proposal_id,))
+    row = await cur.fetchone()
+    await cur.close()
+    assert row[0] == "https://github.com/source-org/repo/pull/99"
+
+
+async def test_forge_falls_back_to_bead_metadata_when_pr_service_fails(
+    db: aiosqlite.Connection,
+    patch_config: None,
+    mock_bot: MagicMock,
+    mock_backend: MagicMock,
+    monkeypatch,
+) -> None:
+    """A PR service failure falls back to the root bead metadata."""
+    proposal_id = "prop-forge-fallback"
+    await insert_forge_proposal(db, proposal_id)
+
+    molecule = Molecule(
+        id="mol-fb",
+        root_id="mol-fb",
+        proposal_id=proposal_id,
+        bead_ids=[],
+        beads=[Bead(id="mol-fb")],
+    )
+    mock_backend.create_molecule.return_value = molecule
+    mock_backend.get_ready.return_value = []
+    mock_backend.get_blocked.return_value = []
+    mock_backend.close_eligible_roots.return_value = ["mol-fb"]
+    mock_backend.get_bead.return_value = Bead(
+        id="mol-fb", pr_url="https://github.com/source-org/repo/pull/42"
+    )
+
+    mock_service = AsyncMock()
+    mock_service.create_or_update_pr = AsyncMock(side_effect=forge.GitHubPRError("out of scope"))
+    mock_service.close = AsyncMock()
+    monkeypatch.setattr(forge, "_get_pr_service", AsyncMock(return_value=mock_service))
+    monkeypatch.setattr(forge, "_source_repo_for_pr", lambda gh: "source-org/repo")
+
+    event = make_transition_event(proposal_id)
+    await forge.on_dm(event, mock_bot)
+
+    mock_backend.get_bead.assert_awaited_once_with("mol-fb")
+    cur = await db.execute("SELECT pr_url FROM molecules WHERE proposal_id = ?", (proposal_id,))
+    row = await cur.fetchone()
+    await cur.close()
+    assert row[0] == "https://github.com/source-org/repo/pull/42"
+

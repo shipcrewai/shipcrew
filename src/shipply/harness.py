@@ -150,11 +150,13 @@ class HarnessBackend:
         args: list[str] | None = None,
         cwd: str | None = None,
         timeout: float = 300.0,
+        env: dict[str, str] | None = None,
     ) -> None:
         self._binary = binary
         self._args = list(args) if args else ["acp"]
         self._cwd = str(cwd or os.getcwd())
         self._timeout = timeout
+        self._env = {**os.environ, **(env or {})}
 
         self._process: asyncio.subprocess.Process | None = None
         self._reader: asyncio.Task[Any] | None = None
@@ -187,6 +189,7 @@ class HarnessBackend:
             return
 
         self._crashed = False
+        self._validate_env()
         cmd = [self._binary] + list(self._args)
         logger.info(
             "Starting ACP harness: %s",
@@ -201,6 +204,7 @@ class HarnessBackend:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self._cwd,
+                env=self._env,
             )
         except Exception as exc:
             raise HarnessError(f"Failed to start harness process: {exc}") from exc
@@ -216,6 +220,33 @@ class HarnessBackend:
         except Exception:
             await self.shutdown()
             raise
+
+    def _validate_env(self) -> None:
+        """Fail fast if configured environment variables are inconsistent."""
+        if "PI_CONFIG_DIR" in self._env:
+            config_dir = Path(self._env["PI_CONFIG_DIR"])
+            if not config_dir.is_dir():
+                raise HarnessError(f"PI_CONFIG_DIR does not exist: {config_dir}")
+
+        if "OMP_AUTH_BROKER_URL" in self._env:
+            has_token = "OMP_AUTH_BROKER_TOKEN" in self._env
+            has_token_file = "OMP_AUTH_BROKER_TOKEN_FILE" in self._env
+            if not has_token and not has_token_file:
+                raise HarnessError(
+                    "OMP_AUTH_BROKER_URL is set but neither OMP_AUTH_BROKER_TOKEN "
+                    "nor OMP_AUTH_BROKER_TOKEN_FILE is set"
+                )
+
+        if "PI_CODING_AGENT_DIR" in self._env:
+            agent_dir = Path(self._env["PI_CODING_AGENT_DIR"])
+            try:
+                agent_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as exc:
+                raise HarnessError(
+                    f"Cannot create PI_CODING_AGENT_DIR {agent_dir}: {exc}"
+                ) from exc
+            if not os.access(agent_dir, os.W_OK):
+                raise HarnessError(f"PI_CODING_AGENT_DIR is not writable: {agent_dir}")
 
     async def shutdown(self) -> None:
         """Close the current session (if any) and terminate the subprocess."""
@@ -761,12 +792,14 @@ class HarnessPool:
         args: list[str] | None = None,
         cwd: str | None = None,
         timeout: float = 300.0,
+        env: dict[str, str] | None = None,
     ) -> None:
         self._config = config
         self._binary = binary
         self._args = list(args) if args else ["acp"]
         self._cwd = str(cwd or os.getcwd())
         self._timeout = timeout
+        self._env = {**os.environ, **(env or {})}
         self._backends: dict[str, HarnessBackend] = {}
         self._lock = asyncio.Lock()
 
@@ -777,6 +810,7 @@ class HarnessPool:
             "args": list(self._args),
             "cwd": self._cwd,
             "timeout": self._timeout,
+            "env": dict(self._env),
         }
         if self._config is not None:
             personas = getattr(self._config, "personas", {})
@@ -784,6 +818,9 @@ class HarnessPool:
             if persona_cfg is not None:
                 settings["binary"] = getattr(persona_cfg, "binary", settings["binary"])
                 settings["args"] = getattr(persona_cfg, "args", settings["args"])
+                persona_env = getattr(persona_cfg, "env", None)
+                if persona_env:
+                    settings["env"].update(persona_env)
         return settings
 
     async def get(self, persona: str) -> HarnessBackend:
