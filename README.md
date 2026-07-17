@@ -4,7 +4,7 @@ An AI-augmented product-lifecycle orchestration engine. Shipply coordinates a te
 
 ## What it provides
 
-Shipply is the runtime behind the pipeline described in [`docs/architecture.md`](docs/architecture.md):
+Shipply is the runtime behind the pipeline described in [`docs/architecture.md`](docs/architecture.md) and the diagram-first overview in [`docs/visual-guide.md`](docs/visual-guide.md):
 
 - **Seven specialized bot handlers** (`src/shipply/handlers/`) that receive Nostr DMs and MLS Squad messages via `pacto-bot-api` and advance proposals through a state machine.
 - **An ACP harness** (`src/shipply/harness.py`) that spawns Oh My Pi (`omp acp`) over stdio, manages the JSON-RPC 2.0 session lifecycle, and returns structured results to each handler.
@@ -14,92 +14,15 @@ Shipply is the runtime behind the pipeline described in [`docs/architecture.md`]
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph users [Users & Maintainers]
-        u1[Author]
-        u2[Maintainer]
-        u3[Community]
-    end
+![Shipply architecture](docs/diagrams/readme-architecture.svg)
 
-    subgraph pacto [pacto-bot-api daemon]
-        daemon[Rust daemon<br/>Nostr relay pool<br/>NIP-46 signing]
-    end
-
-    subgraph handlers [Shipply Bot Handlers]
-        scout[🧠 Scout<br/>Intake & interview]
-        doc[🔍 Doc Review<br/>Requirements audit]
-        g1[📋 Gate 1<br/>Product RFC]
-        bp[📐 Blueprint<br/>Technical plan]
-        g2[🛠️ Gate 2<br/>Maintainer RFC]
-        forge[🐝 Forge<br/>Parallel bead execution]
-        g3[🚀 Gate 3<br/>PR review]
-    end
-
-    subgraph harness [Oh My Pi Harness]
-        h_scout[omp-scout]
-        h_doc[omp-doc-review]
-        h_bp[omp-blueprint]
-        h_forge[omp-forge]
-    end
-
-    subgraph storage [Storage]
-        sqlite[(SQLite<br/>proposals.db)]
-        dolt[(Dolt sql-server<br/>.beads/dolt/)]
-    end
-
-    subgraph obs [Observability]
-        cli[shipply CLI]
-        dash[shipply-dashboard<br/>HTTP + Prometheus]
-    end
-
-    subgraph ext [External]
-        gh[GitHub PRs]
-    end
-
-    u1 -->|DM spark| scout
-    u3 -->|Squad comments| g1
-    u2 -->|Squad comments / authorize| g2
-
-    daemon -->|agent.event| handlers
-
-    scout -->|ACP| h_scout
-    doc -->|ACP| h_doc
-    bp -->|ACP| h_bp
-    forge -->|ACP| h_forge
-
-    scout --> sqlite
-    doc --> sqlite
-    g1 --> sqlite
-    bp --> sqlite
-    g2 --> sqlite
-    forge --> sqlite
-    g3 --> sqlite
-    cli --> sqlite
-    dash --> sqlite
-
-    scout -->|requirements doc| doc
-    doc -->|pass / bounce| scout
-    doc -->|rev1 frozen| g1
-    g1 -->|approved| bp
-    bp -->|blueprint / formula| g2
-    g2 -->|authorized| forge
-    forge -->|bd CLI| dolt
-    forge -->|PR opened| gh
-    g3 -->|gh pr view| gh
-    g3 -->|merged / changes| forge
-```
+*Source: [docs/diagrams/readme-architecture.excalidraw](docs/diagrams/readme-architecture.excalidraw)*
 
 ## Proposal lifecycle
 
-```
-INTAKE ──► DOC_REVIEW ──► GATE_1 ──► BLUEPRINT ──► GATE_2 ──► FORGE ──► GATE_3 ──► CLOSED
-  │             │            │            │            │           │           │
-  │             │            │            │            │           │           │
-  ▼             ▼            ▼            ▼            ▼           ▼           ▼
-Scout        Doc Review    Product     Technical   Maintainer  Beads      PR
-interview    audit         RFC         Blueprint   auth        execution  review
-```
+![Proposal lifecycle](docs/diagrams/readme-proposal-lifecycle.svg)
+
+*Source: [docs/diagrams/readme-proposal-lifecycle.excalidraw](docs/diagrams/readme-proposal-lifecycle.excalidraw)*
 
 At every gate boundary the input artifact is frozen as a revision; late changes are routed to a follow-up proposal rather than mutating in-flight work.
 

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="700" viewBox="-20 -20 1760 700">
+<rect x="-20" y="-20" width="1760" height="700" fill="#ffffff"/>
+<rect x="0" y="0" width="1720" height="54" rx="12" ry="12" fill="#ffffff" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="860" y="31.5" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="20" fill="#1a1a1a" text-anchor="middle" opacity="1">Shipply — how the pieces fit</text>
+<rect x="40" y="90" width="1640" height="110" rx="12" ry="12" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="8.0 4.0" stroke-linecap="round" opacity="1" />
+<text x="54" y="111.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#6b6b6b" text-anchor="start" opacity="1">Channels</text>
+<rect x="200" y="126" width="300" height="52" rx="12" ry="12" fill="#e3f2fd" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="350" y="155.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">Nostr DMs</text>
+<rect x="700" y="126" width="300" height="52" rx="12" ry="12" fill="#e3f2fd" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="850" y="155.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">MLS Squads</text>
+<rect x="1200" y="126" width="300" height="52" rx="12" ry="12" fill="#e3f2fd" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1350" y="155.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">GitHub PRs</text>
+<rect x="40" y="260" width="1640" height="120" rx="12" ry="12" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="8.0 4.0" stroke-linecap="round" opacity="1" />
+<text x="54" y="281.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#6b6b6b" text-anchor="start" opacity="1">Shipply bot handlers</text>
+<rect x="70" y="302" width="200" height="52" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="170" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Scout</text>
+<rect x="292" y="302" width="200" height="52" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="392" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Doc Review</text>
+<rect x="514" y="302" width="200" height="52" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="614" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Blueprint</text>
+<rect x="736" y="302" width="200" height="52" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="836" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Forge</text>
+<rect x="958" y="302" width="200" height="52" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1058" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 1</text>
+<rect x="1180" y="302" width="200" height="52" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1280" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 2</text>
+<rect x="1402" y="302" width="200" height="52" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1502" y="330.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 3</text>
+<rect x="40" y="440" width="620" height="64" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="350" y="466.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">ACP harness</text>
+<text x="350" y="483.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">spawns `omp acp` per task · JSON-RPC stdio</text>
+<rect x="700" y="600" width="300" height="60" rx="12" ry="12" fill="#f5f5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="850" y="624.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">SQLite</text>
+<text x="850" y="641.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">proposals</text>
+<rect x="1060" y="600" width="300" height="60" rx="12" ry="12" fill="#f5f5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1210" y="624.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Beads / Dolt</text>
+<text x="1210" y="641.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">task graph</text>
+<rect x="1400" y="600" width="280" height="60" rx="12" ry="12" fill="#ffebee" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1540" y="633.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">GitHub</text>
+<g><path d="M 850 200 L 850 260" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="850,260 846,252 854,252" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="862" y="232.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">DM · Squad · PR events</text>
+<g><path d="M 350 380 L 350 440" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="350,440 346,432 354,432" fill="#5c5c5c" stroke="#5c5c5c" /><polygon points="350,380 354,388 346,388" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="362" y="412.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">spawn agent · stream results</text>
+<g><path d="M 850 380 L 850 600" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="850,600 846,592 854,592" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="862" y="492.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">persist proposals</text>
+<g><path d="M 920 380 L 920 540 L 1210 540 L 1210 600" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1210,600 1206,592 1214,592" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="1065" y="525.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">bd CLI</text>
+<g><path d="M 1530 380 L 1530 540 L 1540 540 L 1540 600" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1540,600 1536,592 1544,592" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="1535" y="525.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">gh CLI</text>
+</svg>

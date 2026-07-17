@@ -361,7 +361,7 @@ services:
     environment:
       SHIPPLY_CONFIG: /etc/shipply/shipply.toml
       PACTO_TRANSPORT: unix
-      PACTO_SOCKET: /run/pacto/pacto-bot-api.sock
+      PACTO_SOCKET: /var/lib/pacto-bot-api/pacto-bot-api.sock
       PACTO_SECRET_TOKEN: ${PACTO_SECRET_TOKEN:-}
       PACTO_SECRET_TOKEN_FILE: /run/secrets/pacto-secret-token
       GITHUB_WEBHOOK_SECRET_FILE: /run/secrets/github-app-webhook-secret
@@ -371,7 +371,6 @@ services:
       BRIDGE_DB_PATH: /var/lib/shipply-bridge/dedup.db
     volumes:
       - pacto-bot-api-data:/var/lib/pacto-bot-api:ro
-      - bridge-dedup-db:/var/lib/shipply-bridge
       - omp-config:/etc/omp:ro
       - ./shipply.toml:/etc/shipply/shipply.toml:ro
     networks:
@@ -380,10 +379,13 @@ services:
       - github-app-webhook-secret
       - reconcile-token
       - pacto-secret-token
+    ports:
+      - 8000:8000
     command: ["uvicorn", "shipply.webhook_bridge:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
     read_only: true
     tmpfs:
       - /tmp
+      - /var/lib/shipply-bridge
     depends_on:
       github-app-token-manager:
         condition: service_started
@@ -430,4 +432,3 @@ volumes:
     external: true
     name: pacto-bot-api-data
   omp-config:
-  bridge-dedup-db:
