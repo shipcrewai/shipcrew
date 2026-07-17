@@ -98,145 +98,23 @@ The architecture doc (`docs/architecture.md`) defines a six-stage AI-augmented p
 
 ### Component topology
 
-```mermaid
-flowchart TB
-    subgraph pacto["pacto-bot-api daemon"]
-        daemon["Rust daemon\nNostr relay pool\nNIP-46 signing\nHandler dispatch"]
-    end
+![Plan 001 component topology](../diagrams/plan-001-component-topology.svg)
 
-    subgraph handlers["Bot handlers (Python)"]
-        scout["Scout handler\nbot_id: shipply-scout"]
-        docrev["Doc Review handler\nbot_id: shipply-doc-review"]
-        blueprint["Blueprint handler\nbot_id: shipply-blueprint"]
-        forge["Forge handler\nbot_id: shipply-forge"]
-        gate1["Gate 1 handler\nbot_id: shipply-gate-1"]
-        gate2["Gate 2 handler\nbot_id: shipply-gate-2"]
-        gate3["Gate 3 handler\nbot_id: shipply-gate-3"]
-    end
-
-    subgraph harnesses["Oh My Pi harnesses"]
-        h_scout["omp-scout\n--model fast"]
-        h_docrev["omp-doc-review\n--model default"]
-        h_blueprint["omp-blueprint\n--model slow"]
-        h_forge["omp-forge\n--model default"]
-    end
-    subgraph storage["Storage"]
-        sqlite[("SQLite\nproposals.db")]
-        dolt[("Dolt sql-server\n.beads/dolt/")]
-    end
-
-    subgraph observability["Observability"]
-        dashboard["Dashboard / CLI\nSQLite queries + Prometheus"]
-    end
-
-    subgraph external["External"]
-        github["GitHub\nPR review"]
-    end
-
-    daemon -->|agent.event| scout
-    daemon -->|agent.event| docrev
-    daemon -->|agent.event| blueprint
-    daemon -->|agent.event| forge
-    daemon -->|agent.event| gate1
-    daemon -->|agent.event| gate2
-    daemon -->|agent.event| gate3
-
-    scout -->|ACP| h_scout
-    docrev -->|ACP| h_docrev
-    blueprint -->|ACP| h_blueprint
-    forge -->|ACP| h_forge
-
-    scout --> sqlite
-    docrev --> sqlite
-    blueprint --> sqlite
-    forge --> sqlite
-    gate1 --> sqlite
-    gate2 --> sqlite
-    gate3 --> sqlite
-    dashboard -->|read-only queries| sqlite
-
-    forge -->|bd CLI| dolt
-    forge -->|gh CLI| github
-    gate3 -->|gh CLI| github
-```
+*Source: [docs/diagrams/plan-001-component-topology.excalidraw](../diagrams/plan-001-component-topology.excalidraw)*
 
 ### Proposal state machine
 
-```mermaid
-stateDiagram-v2
-    [*] --> INTAKE: user sends spark
+![Plan 001 proposal state machine](../diagrams/plan-001-state-machine.svg)
 
-    INTAKE --> DOC_REVIEW: Scout produces requirements doc
-    DOC_REVIEW --> INTAKE: blocking gaps found
-    DOC_REVIEW --> GATE_1: doc passes audit (rev1 frozen)
-
-    GATE_1 --> GATE_1: RFC discussion
-    GATE_1 --> INTAKE: rejected (votes against > threshold)
-    GATE_1 --> BLUEPRINT: approved (rev2 frozen)
-
-    BLUEPRINT --> GATE_2: Blueprint emits plan
-    GATE_2 --> GATE_2: maintainer review
-    GATE_2 --> BLUEPRINT: maintainer requests rebuild
-    GATE_2 --> FORGE: maintainer authorizes (blueprint frozen)
-
-    FORGE --> FORGE: bead execution
-    FORGE --> GATE_3: all beads complete
-
-    GATE_3 --> GATE_3: PR review
-    GATE_3 --> FORGE: PR changes requested
-    GATE_3 --> CLOSED: PR merged
-
-    CLOSED --> [*]
-```
+*Source: [docs/diagrams/plan-001-state-machine.excalidraw](../diagrams/plan-001-state-machine.excalidraw)*
 
 ### Harness protocol (Agent Client Protocol)
 
 Each handler→harness interaction uses the Agent Client Protocol (ACP) over stdio. ACP is JSON-RPC 2.0: bidirectional, request/response plus notifications. Spawn with `omp acp` (equivalent to `omp --mode acp`). The verified contract is against omp v16.3.3; the spec lives at [zed-industries/agent-client-protocol](https://github.com/zed-industries/agent-client-protocol).
 
-```
-Handler                              omp (ACP)
-  │                                        │
-  │  {"jsonrpc":"2.0","id":1,              │  ← initialize
-  │   "method":"initialize",                 │
-  │   "params":{"protocolVersion":1}}      │
-  │ ──────────────────────────────────────>│
-  │  {"jsonrpc":"2.0","id":1,"result":{    │  ← protocolVersion, agentInfo,
-  │   "protocolVersion":1,...}}             │     agentCapabilities, authMethods
-  │ <──────────────────────────────────────│
-  │                                        │
-  │  {"jsonrpc":"2.0","id":2,              │  ← authenticate
-  │   "method":"authenticate",               │
-  │   "params":{"method":"agent"}}           │
-  │ ──────────────────────────────────────>│
-  │  {"jsonrpc":"2.0","id":2,"result":{    │  ← auth success
-  │   ...}}                                  │
-  │ <──────────────────────────────────────│
-  │                                        │
-  │  {"jsonrpc":"2.0","id":3,              │  ← session/new
-  │   "method":"session/new",                │
-  │   "params":{"cwd":"...","mcpServers":[]}}│
-  │ ──────────────────────────────────────>│
-  │  {"jsonrpc":"2.0","id":3,"result":{    │  ← sessionId, configOptions
-  │   "sessionId":"...",...}}               │
-  │ <──────────────────────────────────────│
-  │                                        │
-  │  {"jsonrpc":"2.0","id":4,              │  ← session/prompt
-  │   "method":"session/prompt",             │
-  │   "params":{"sessionId":"...",          │
-  │    "prompt":[{"type":"text",            │
-  │               "text":"<task context>"}]}}│
-  │ ──────────────────────────────────────>│
-  │                                        │  agent runs skills, subagents
-  │  {"jsonrpc":"2.0","method":"session/     │  ← streaming notification
-  │   update","params":{"sessionId":"...",   │     (agent_thought_chunk,
-  │   "type":"agent_message_chunk",...}}    │     agent_message_chunk,
-  │ <──────────────────────────────────────│     usage_update, etc.)
-  │                                        │
-  │  {"jsonrpc":"2.0","id":4,"result":{       │  ← prompt completion
-  │   "stopReason":"end_turn",               │
-  │   "usage":{...}}}                        │
-  │ <──────────────────────────────────────│
-```
+![Plan 001 ACP handshake](../diagrams/plan-001-acp-handshake.svg)
+
+*Source: [docs/diagrams/plan-001-acp-handshake.excalidraw](../diagrams/plan-001-acp-handshake.excalidraw)*
 
 Verified client → agent methods:
 

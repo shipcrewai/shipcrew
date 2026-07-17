@@ -88,101 +88,21 @@ Today the Shipply handlers spawn `omp acp` but the container has no runtime OMP 
 
 ### Component topology
 
-```mermaid
-flowchart TB
-    subgraph secrets["Docker secrets"]
-        gh_priv["github-app-private-key"]
-        gh_webhook["github-app-webhook-secret"]
-        omp_broker["omp-auth-broker-token"]
-        omp_provider_config["omp-provider-config.yml"]
-    end
+![Plan 002 deployment topology](../diagrams/plan-002-component-topology.svg)
 
-    subgraph init["Init"]
-        init_omp["init-omp<br/>provisions PI_CONFIG_DIR"]
-    end
-
-    subgraph handlers["Shipply handlers (root compose)"]
-        scout["scout<br/>PI_CODING_AGENT_DIR=/tmp/omp-state/scout"]
-        doc_review["doc-review<br/>PI_CODING_AGENT_DIR=/tmp/omp-state/doc-review"]
-        blueprint["blueprint<br/>PI_CODING_AGENT_DIR=/tmp/omp-state/blueprint"]
-        forge["forge<br/>PI_CODING_AGENT_DIR=/tmp/omp-state/forge"]
-        gate1["gate1"]
-        gate2["gate2"]
-        gate3["gate3"]
-    end
-
-    subgraph broker_service["Auth broker"]
-        omp_auth_broker["omp-auth-broker"]
-    end
-
-    subgraph token_manager["Token manager"]
-        gh_token_manager["github-app-token-manager"]
-    end
-
-    subgraph bridge["Webhook bridge"]
-        webhook["github-webhook-bridge"]
-    end
-
-    subgraph external["External"]
-        github["GitHub App / API"]
-        ingress["HTTPS ingress<br/>(ngrok / reverse proxy)"]
-        providers["LLM providers"]
-    end
-
-    subgraph storage["Shared volumes"]
-        omp_config["omp-config<br/>read-only"]
-        pacto_socket["pacto-socket"]
-        bridge_db["bridge-dedup.db"]
-    end
-
-    secrets --> init_omp
-    secrets --> omp_auth_broker
-    secrets --> gh_token_manager
-    init_omp --> omp_config
-    omp_config -->|read-only| handlers
-    omp_provider_config --> init_omp
-    handlers -->|broker token| omp_auth_broker --> providers
-    forge -->|workspace token| gh_token_manager --> github
-    gate3 -->|source token| gh_token_manager --> github
-    webhook -->|source token| gh_token_manager --> github
-    github -->|webhooks| ingress --> webhook
-    webhook -->|Nostr events| pacto_socket
-    pacto_socket --> gate3
-```
+*Source: [docs/diagrams/plan-002-component-topology.excalidraw](../diagrams/plan-002-component-topology.excalidraw)*
 
 ### Token lifecycle
 
-```mermaid
-sequenceDiagram
-    participant Client as forge / gate3 / bridge
-    participant TM as github-app-token-manager
-    participant GitHub as GitHub API
+![Plan 002 token lifecycle](../diagrams/plan-002-token-lifecycle.svg)
 
-    Client->>TM: get_source_token() or get_workspace_token()
-    TM->>TM: check cache; if near expiry
-    TM->>TM: look up installation ID, generate App JWT (RS256, 10 min TTL)
-    TM->>GitHub: POST /app/installations/{id}/access_tokens
-    GitHub-->>TM: installation token + expires_at
-    TM->>TM: cache token
-    TM-->>Client: token
-```
+*Source: [docs/diagrams/plan-002-token-lifecycle.excalidraw](../diagrams/plan-002-token-lifecycle.excalidraw)*
 
 ### PR lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> FORK_CREATED: ensure fork exists
-    FORK_CREATED --> FORK_READY: poll fork readiness
-    FORK_READY --> BRANCH_PUSHED: push deterministic branch
-    BRANCH_PUSHED --> PR_OPEN: no existing open PR
-    BRANCH_PUSHED --> PR_UPDATED: existing open PR found
-    PR_OPEN --> PR_MERGED: merged
-    PR_UPDATED --> PR_MERGED: merged
-    PR_MERGED --> [*]
-    PR_OPEN --> CHANGES_REQUESTED: review / synchronize
-    PR_UPDATED --> CHANGES_REQUESTED: review / synchronize
-    CHANGES_REQUESTED --> BRANCH_PUSHED: re-push
-```
+![Plan 002 PR lifecycle](../diagrams/plan-002-pr-lifecycle.svg)
+
+*Source: [docs/diagrams/plan-002-pr-lifecycle.excalidraw](../diagrams/plan-002-pr-lifecycle.excalidraw)*
 
 ---
 

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="750" viewBox="-20 -20 1600 750">
+<rect x="-20" y="-20" width="1600" height="750" fill="#ffffff"/>
+<rect x="0" y="0" width="1560" height="54" rx="12" ry="12" fill="#ffffff" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="780" y="31.5" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="20" fill="#1a1a1a" text-anchor="middle" opacity="1">Plan 001 · Shipply runtime topology</text>
+<rect x="40" y="90" width="300" height="400" rx="12" ry="12" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="8.0 4.0" stroke-linecap="round" opacity="1" />
+<text x="54" y="111.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#6b6b6b" text-anchor="start" opacity="1">External</text>
+<rect x="70" y="130" width="240" height="52" rx="12" ry="12" fill="#e8eaf6" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="190" y="158.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Nostr relays</text>
+<rect x="70" y="230" width="240" height="52" rx="12" ry="12" fill="#ffebee" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="190" y="258.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">GitHub</text>
+<rect x="70" y="330" width="240" height="52" rx="12" ry="12" fill="#e8eaf6" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="190" y="358.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">LLM providers</text>
+<rect x="420" y="90" width="1100" height="620" rx="12" ry="12" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="8.0 4.0" stroke-linecap="round" opacity="1" />
+<text x="434" y="111.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#6b6b6b" text-anchor="start" opacity="1">Shipply host</text>
+<rect x="760" y="130" width="420" height="52" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="970" y="159.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">pacto-bot-api daemon</text>
+<rect x="460" y="240" width="1020" height="150" rx="12" ry="12" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="8.0 4.0" stroke-linecap="round" opacity="1" />
+<text x="474" y="261.15" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#6b6b6b" text-anchor="start" opacity="1">Bot handlers</text>
+<rect x="478" y="292" width="130" height="48" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="543" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Scout</text>
+<rect x="620" y="292" width="130" height="48" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="685" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Doc Review</text>
+<rect x="762" y="292" width="130" height="48" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="827" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 1</text>
+<rect x="904" y="292" width="130" height="48" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="969" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Blueprint</text>
+<rect x="1046" y="292" width="130" height="48" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1111" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 2</text>
+<rect x="1188" y="292" width="130" height="48" rx="12" ry="12" fill="#fff3e0" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1253" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Forge</text>
+<rect x="1330" y="292" width="130" height="48" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1395" y="318.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 3</text>
+<rect x="640" y="450" width="580" height="56" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="930" y="472.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">ACP harness — spawns `omp acp` per task</text>
+<text x="930" y="489.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">JSON-RPC over stdio</text>
+<rect x="520" y="600" width="300" height="56" rx="12" ry="12" fill="#f5f5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="670" y="630.92" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">SQLite · proposals</text>
+<rect x="900" y="600" width="300" height="56" rx="12" ry="12" fill="#f5f5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1050" y="630.92" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Beads / Dolt server</text>
+<g><path d="M 310 156 L 760 156" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="760,156 752,160 752,152" fill="#5c5c5c" stroke="#5c5c5c" /><polygon points="310,156 318,152 318,160" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="535" y="141.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">Nostr events</text>
+<g><path d="M 970 182 L 970 240" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="970,240 966,232 974,232" fill="#5c5c5c" stroke="#5c5c5c" /><polygon points="970,182 974,190 966,190" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="982" y="213.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">socket RPC · events</text>
+<g><path d="M 920 390 L 920 450" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="920,450 916,442 924,442" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="932" y="422.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">spawn ACP</text>
+<g><path d="M 310 478 L 640 478" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="640,478 632,482 632,474" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="475" y="463.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">LLM APIs</text>
+<g><path d="M 560 390 L 560 600" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="560,600 556,592 564,592" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="572" y="497.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">SQL</text>
+<g><path d="M 1300 390 L 1300 530 L 1050 530 L 1050 600" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1050,600 1046,592 1054,592" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="1175" y="550.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">bd CLI</text>
+<g><path d="M 478 316 L 380 316 L 380 256 L 310 256" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="310,256 318,252 318,260" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="429" y="301.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">gh CLI</text>
+</svg>

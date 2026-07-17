@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="404" viewBox="-20 -20 1100 404">
+<rect x="-20" y="-20" width="1100" height="404" fill="#ffffff"/>
+<rect x="0" y="0" width="1060" height="54" rx="12" ry="12" fill="#ffffff" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="530" y="31.5" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="20" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate-transition immutability</text>
+<rect x="60" y="100" width="220" height="76" rx="12" ry="12" fill="#f3e5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="170" y="132.4" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">Requirements</text>
+<text x="170" y="149.9" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">rev 1 · frozen</text>
+<rect x="60" y="280" width="220" height="84" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="170" y="316.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 1</text>
+<text x="170" y="333.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">late change → new proposal</text>
+<g><path d="M 170 176 L 170 280" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="170,280 166,272 174,272" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="182" y="230.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">freeze</text>
+<rect x="420" y="100" width="220" height="76" rx="12" ry="12" fill="#f3e5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="530" y="132.4" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">Product RFC</text>
+<text x="530" y="149.9" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">rev 2 · frozen</text>
+<rect x="420" y="280" width="220" height="84" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="530" y="316.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Gate 2</text>
+<text x="530" y="333.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">late change → new proposal</text>
+<g><path d="M 530 176 L 530 280" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="530,280 526,272 534,272" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="542" y="230.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">freeze</text>
+<rect x="780" y="100" width="220" height="76" rx="12" ry="12" fill="#f3e5f5" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="890" y="132.4" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">Blueprint</text>
+<text x="890" y="149.9" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" opacity="1">rev 3 · frozen</text>
+<rect x="780" y="280" width="220" height="84" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="890" y="316.8" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Forge</text>
+<text x="890" y="333.05" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">late change → new proposal</text>
+<g><path d="M 890 176 L 890 280" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="890,280 886,272 894,272" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="902" y="230.7" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="start" opacity="1">freeze</text>
+<g><path d="M 280 138 L 420 138" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="420,138 412,142 412,134" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="350" y="123.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">approved · re-frozen</text>
+<g><path d="M 640 138 L 780 138" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="780,138 772,142 772,134" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="710" y="123.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">approved · re-frozen</text>
+</svg>

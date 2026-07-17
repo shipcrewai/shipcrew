@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="697.52" height="752" viewBox="-20 -20 697.52 752">
+<rect x="-20" y="-20" width="697.52" height="752" fill="#ffffff"/>
+<rect x="0" y="0" width="657.52" height="54" rx="12" ry="12" fill="#ffffff" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="328.76" y="31.5" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="20" fill="#1a1a1a" text-anchor="middle" opacity="1">Plan 001 · ACP handshake</text>
+<rect x="66.34" y="90" width="87.33" height="46" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="110" y="115.92" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">Handler</text>
+<rect x="465.66" y="90" width="103.71" height="46" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="517.52" y="115.92" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">omp (ACP)</text>
+<path d="M 110 136 L 110 712" fill="none" stroke="#5c5c5c" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4.0 2.0" opacity="1" />
+<path d="M 517.52 136 L 517.52 712" fill="none" stroke="#5c5c5c" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4.0 2.0" opacity="1" />
+<g><path d="M 110 150 L 517.52 150" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="517.52,150 509.52,154 509.52,146" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="135.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">initialize {protocolVersion: 1}</text>
+<g><path d="M 517.52 208 L 110 208" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="110,208 118,204 118,212" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="193.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">protocolVersion · agentInfo · authMethods</text>
+<g><path d="M 110 266 L 517.52 266" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="517.52,266 509.52,270 509.52,262" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="251.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">authenticate {method: "agent"}</text>
+<g><path d="M 517.52 324 L 110 324" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="110,324 118,320 118,328" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="309.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">authenticated</text>
+<g><path d="M 110 382 L 517.52 382" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="517.52,382 509.52,386 509.52,378" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="367.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">session/new {cwd, mcpServers}</text>
+<g><path d="M 517.52 440 L 110 440" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="110,440 118,436 118,444" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="425.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">sessionId</text>
+<g><path d="M 110 498 L 517.52 498" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="517.52,498 509.52,502 509.52,494" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="483.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">session/prompt [content blocks]</text>
+<g><path d="M 517.52 556 L 110 556" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="110,556 118,552 118,560" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="541.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">session/update stream · tool calls · usage</text>
+<g><path d="M 517.52 614 L 110 614" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="110,614 118,610 118,618" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="599.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">stopReason: end_turn + usage</text>
+<g><path d="M 110 672 L 517.52 672" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="517.52,672 509.52,676 509.52,668" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="313.76" y="657.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">session/cancel (notification)</text>
+</svg>

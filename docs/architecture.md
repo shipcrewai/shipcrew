@@ -1,54 +1,13 @@
 # Shipply Architecture
 
+> **New to Shipply?** Start with the [Visual Guide](visual-guide.md) for a
+> diagram-first explanation of the pipeline.
+
 ## Pipeline Overview
 
-```
-              ┌─────────────────────────────────────┐
-              │          [ 🧠 Scout (Bot) ]         │
-              │   Intake & Multi-User Interview    │
-              └──────────────────┬──────────────────┘
-                                 │
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │      [ 🔍 Doc Review (Bot) ]        │
-              │   ce-doc-review Requirements Audit  │
-              └──────────────────┬──────────────────┘
-                                 │
-                        ┌────────┴────────┐
-                        │  gaps found?    │
-                        └────────┬────────┘
-                                 │ yes → loop back to Scout
-                                 │ no
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │       [ 📋 GATE 1 GOVERNANCE ]      │
-              │       Product & Community RFC       │
-              └──────────────────┬──────────────────┘
-                                 │
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │       [ 📐 Blueprint (Bot) ]        │
-              │     Technical Architecture Plan     │
-              └──────────────────┬──────────────────┘
-                                 │
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │       [ 🛠️ GATE 2 GOVERNANCE ]      │
-              │       Developer & Maintainer RFC    │
-              └──────────────────┬──────────────────┘
-                                 │
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │        [ 🐝 Forge / Swarm ]         │
-              │   Parallel Bead Execution Engine    │
-              └──────────────────┬──────────────────┘
-                                 │
-                                 ▼
-              ┌─────────────────────────────────────┐
-              │       [ 🚀 GATE 3 GOVERNANCE ]      │
-              │      GitHub Pull Request Review     │
-              └─────────────────────────────────────┘
-```
+![Shipply pipeline at a glance](diagrams/shipply-pipeline-at-a-glance.svg)
+
+*Source: [docs/diagrams/shipply-pipeline-at-a-glance.excalidraw](diagrams/shipply-pipeline-at-a-glance.excalidraw)*
 
 ## Named Bot Personas & Lifecycle Stages
 
@@ -326,15 +285,9 @@ For a multi-agent swarm like Forge, **server mode** or a **DoltHub remote** is r
 
 ### Bead Lifecycle in the Pipeline
 
-```
-Blueprint emits BeadSpec[]  →  bd mol pour  →  Molecule (epic + children)
-                                                │
-                              bd ready          ←  Forge queries claimable frontier
-                              bd update --claim ←  Forge claims a bead
-                              bd close          ←  Forge closes on success
-                              bd gate create    ←  Forge creates a gate on failure
-                              bd dolt push      ←  Sync to shared remote
-```
+![Bead lifecycle](diagrams/bead-lifecycle.svg)
+
+*Source: [docs/diagrams/bead-lifecycle.excalidraw](diagrams/bead-lifecycle.excalidraw)*
 
 ### Dependency Types Used
 

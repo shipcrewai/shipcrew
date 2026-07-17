@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1730" height="263" viewBox="-20 -20 1730 263">
+<rect x="-20" y="-20" width="1730" height="263" fill="#ffffff"/>
+<rect x="0" y="0" width="1690" height="54" rx="12" ry="12" fill="#ffffff" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="845" y="31.5" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="20" fill="#1a1a1a" text-anchor="middle" opacity="1">Proposal lifecycle</text>
+<rect x="40" y="100" width="160" height="54" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="120" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">INTAKE</text>
+<text x="120" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">Scout interview</text>
+<rect x="250" y="100" width="160" height="54" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="330" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">DOC_REVIEW</text>
+<text x="330" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">requirements audit</text>
+<g><path d="M 200 127 L 250 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="250,127 242,131 242,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="460" y="100" width="160" height="54" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="540" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">GATE_1</text>
+<text x="540" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">product vote</text>
+<g><path d="M 410 127 L 460 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="460,127 452,131 452,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="670" y="100" width="160" height="54" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="750" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">BLUEPRINT</text>
+<text x="750" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">technical plan</text>
+<g><path d="M 620 127 L 670 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="670,127 662,131 662,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="880" y="100" width="160" height="54" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="960" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">GATE_2</text>
+<text x="960" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">maintainer auth</text>
+<g><path d="M 830 127 L 880 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="880,127 872,131 872,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="1090" y="100" width="160" height="54" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1170" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">FORGE</text>
+<text x="1170" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">bead swarm</text>
+<g><path d="M 1040 127 L 1090 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1090,127 1082,131 1082,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="1300" y="100" width="160" height="54" rx="12" ry="12" fill="#e8f5e9" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1380" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">GATE_3</text>
+<text x="1380" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">PR review</text>
+<g><path d="M 1250 127 L 1300 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1300,127 1292,131 1292,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<rect x="1510" y="100" width="160" height="54" rx="12" ry="12" fill="#e0f7fa" stroke="#2c2c2c" stroke-width="2" opacity="1" />
+<text x="1590" y="129.93" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="13" fill="#1a1a1a" text-anchor="middle" opacity="1">CLOSED</text>
+<text x="1590" y="171.35" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="11" fill="#6b6b6b" text-anchor="middle" opacity="1">shipped</text>
+<g><path d="M 1460 127 L 1510 127" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="1" /><polygon points="1510,127 1502,131 1502,123" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<g><path d="M 330 154 L 330 198 L 120 198 L 120 154" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="120,154 124,162 116,162" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="225" y="218.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">gaps found</text>
+<g><path d="M 1380 154 L 1380 198 L 1170 198 L 1170 154" fill="none" stroke="#5c5c5c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8.0 4.0" opacity="1" /><polygon points="1170,154 1174,162 1166,162" fill="#5c5c5c" stroke="#5c5c5c" /></g>
+<text x="1275" y="218.2" font-family="Virgil, Segoe Print, Comic Sans MS, sans-serif" font-size="12" fill="#1a1a1a" text-anchor="middle" opacity="1">changes requested</text>
+</svg>
